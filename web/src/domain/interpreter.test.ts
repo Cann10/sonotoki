@@ -145,6 +145,13 @@ describe('interpret — Personal Place Dictionary（独自の場所の呼び方�
     expect(r.moments[0].kind).toBe('place_arrival');
   });
 
+  it('「ゴミを出す」「うまく行ったら」等の非場所表現を誤って拾わない', () => {
+    for (const t of ['ゴミを出す', '手紙を出す', 'うまく行ったら連絡', '順調に行ったら報告', '早く帰ったら休む', '友達に返事する']) {
+      const r = interpret(t);
+      expect(r.moments[0]?.needsPlaceLearning, `"${t}" が誤検出`).toBeFalsy();
+    }
+  });
+
   it('組み込みの場所（大学）は辞書機構を通らない', () => {
     const r = interpret('傘、大学に置いてきた');
     expect(r.moments[0].placePhrase).toBeUndefined();
