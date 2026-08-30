@@ -942,13 +942,13 @@
   .world__strip {
     flex-wrap: wrap;
     overflow-x: visible;
+    row-gap: 0.7rem; /* 絶対配置の待機バッジが上段に食い込まない余白 */
   }
   .world__rail {
     display: none;
   }
   .place {
-    padding: 0.5em 0.8em;
-    font-size: 0.95rem;
+    padding: 0.55em 0.95em; /* 折り返すので縮めない。タップ域を確保 */
   }
   .world__time {
     margin-left: 0;
@@ -956,6 +956,12 @@
   }
   .world__now {
     gap: 0.4rem 0.6rem;
+  }
+  /* 狭い画面でのタップ域確保 */
+  .chip,
+  .teach__place,
+  .masthead__reset {
+    padding-block: 0.5em;
   }
   .sonotoki {
     padding: 1.2rem;
