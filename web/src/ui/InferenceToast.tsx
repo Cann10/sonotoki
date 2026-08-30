@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { EngineMoment } from '../domain';
 import type { LastInference } from '../store/useSonotoki';
 
@@ -12,24 +12,20 @@ interface Props {
 
 export function InferenceToast({ inference, moment, onRepick, onUndo, onDismiss }: Props) {
   const [open, setOpen] = useState(inference.needsConfirm);
-  const [hovered, setHovered] = useState(false);
-
-  useEffect(() => {
-    if (inference.needsConfirm || open || hovered) return;
-    const t = setTimeout(onDismiss, 12000);
-    return () => clearTimeout(t);
-  }, [inference, open, hovered, onDismiss]);
 
   if (!moment) return null;
   const candidates = inference.interpretation.moments.slice(0, 3);
 
   return (
-    <div
-      className={`toast${inference.needsConfirm ? ' toast--ask' : ''}`}
-      role="status"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div className={`toast${inference.needsConfirm ? ' toast--ask' : ''}`} role="status">
+      <button
+        type="button"
+        className="toast__close"
+        aria-label="閉じる"
+        onClick={onDismiss}
+      >
+        ×
+      </button>
       <div className="toast__main">
         <span className="toast__mark" aria-hidden="true">
           ▸

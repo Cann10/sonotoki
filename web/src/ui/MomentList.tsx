@@ -18,18 +18,7 @@ const SECTIONS: { key: string; title: string; match: (m: EngineMoment) => boolea
 ];
 
 export function MomentList({ moments, onRepick, onRemove }: Props) {
-  if (moments.length === 0) {
-    return (
-      <div className="empty">
-        <p className="empty__title">まだ何もありません。</p>
-        <p className="empty__body">
-          思い浮かんだことを、ひとつ書いてみてください。
-          <br />
-          そのときが来たら、こちらから声をかけます。
-        </p>
-      </div>
-    );
-  }
+  if (moments.length === 0) return null;
 
   return (
     <div className="moment-list">

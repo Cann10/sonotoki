@@ -32,6 +32,10 @@ export function SonotokiMoment({ moment, queueRemaining, onDone, onNext }: Props
           </button>
         </div>
 
+        <p className="sonotoki__hint">
+          「次のそのとき」は時間で鳴らしません。<b>また同じ状況になったとき</b>に戻します。
+        </p>
+
         {moment.firedCount > 1 && (
           <p className="sonotoki__foot">この条件で戻ってくるのは {moment.firedCount} 回目</p>
         )}

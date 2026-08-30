@@ -12,6 +12,7 @@ const TIME_BUCKETS: TimeBucket[] = ['this_evening', 'tomorrow_morning'];
 export function WorldSim({ world, waitingByPlace, onEvent }: Props) {
   const places = stripPlaces();
   const here = world.location;
+  const anyWaiting = Object.values(waitingByPlace).some((n) => n > 0);
 
   function tapPlace(id: PlaceId) {
     if (here === id) {
@@ -30,7 +31,9 @@ export function WorldSim({ world, waitingByPlace, onEvent }: Props) {
         <div className="world__head">
           <h2 className="world__title">いま、どこにいる?</h2>
           <p className="world__hint">
-            タップして移動。あずけたメモは、その場所で待っています。
+            {anyWaiting
+              ? 'タップして移動。あずけたメモは、その場所で待っています。'
+              : 'メモをあずけると、その場所で「そのとき」を待ちます。'}
           </p>
         </div>
 

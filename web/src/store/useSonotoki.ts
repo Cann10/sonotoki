@@ -138,6 +138,8 @@ function reducer(state: State, action: Action): State {
         moments: result.moments,
         world: result.world,
         fireQueue: [...state.fireQueue, ...newlyFired],
+        // 状況を動かし始めたら、直前の推論トーストは役目を終える（レイアウトのちらつき防止）
+        lastInference: null,
       };
     }
 

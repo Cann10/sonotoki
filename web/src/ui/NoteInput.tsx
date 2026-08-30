@@ -9,9 +9,10 @@ const EXAMPLES = [
 
 interface Props {
   onSubmit: (text: string) => void;
+  showExamples?: boolean;
 }
 
-export function NoteInput({ onSubmit }: Props) {
+export function NoteInput({ onSubmit, showExamples = true }: Props) {
   const [text, setText] = useState('');
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,14 +56,16 @@ export function NoteInput({ onSubmit }: Props) {
           あずける
         </button>
       </div>
-      <div className="note-input__examples" role="group" aria-label="例">
-        <span className="note-input__examples-label">例）</span>
-        {EXAMPLES.map((ex) => (
-          <button key={ex} type="button" className="chip" onClick={() => submit(ex)}>
-            {ex}
-          </button>
-        ))}
-      </div>
+      {showExamples && (
+        <div className="note-input__examples" role="group" aria-label="例">
+          <span className="note-input__examples-label">例）</span>
+          {EXAMPLES.map((ex) => (
+            <button key={ex} type="button" className="chip" onClick={() => submit(ex)}>
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
     </form>
   );
 }
