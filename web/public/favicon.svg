@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="そのとき">
+  <rect width="64" height="64" rx="16" fill="#1B1D2A" />
+  <path d="M20 46 C20 30 44 34 44 20" fill="none" stroke="#8A8FA8" stroke-width="3" stroke-linecap="round" />
+  <circle cx="44" cy="20" r="15" fill="#F0A741" opacity="0.22" />
+  <circle cx="44" cy="20" r="9" fill="#F0A741" />
+</svg>

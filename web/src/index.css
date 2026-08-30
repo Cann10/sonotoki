@@ -1,0 +1,86 @@
+/* ───────────────────────────────────────────────────────────
+   そのとき — design tokens & base
+   Concept: dusk / threshold. The moment between one situation and
+   the next. Quiet cool light everywhere; one warm amber lamp for
+   the instant a memo comes back.
+   ─────────────────────────────────────────────────────────── */
+
+:root {
+  --ink: #1b1d2a; /* deep dusk indigo — primary text */
+  --ink-soft: #4a4d63;
+  --dusk: #2e3350; /* raised dark surface (sim world) */
+  --paper: #f7f4ec; /* the memo you wrote — warm paper */
+  --paper-edge: #e9e3d2;
+  --mist: #eceef4; /* app ground — the space between situations */
+  --panel: #e2e5ef; /* section panels */
+  --signal: #f0a741; /* amber lamp — ONLY the そのとき moment */
+  --signal-deep: #a45f0d; /* amber that is safe as text on paper */
+  --thread: #8a8fa8; /* in transit / dormant / hairlines */
+  --line: rgba(27, 29, 42, 0.12);
+  --line-strong: rgba(27, 29, 42, 0.24);
+
+  --font-memo: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
+  --font-ui: 'IBM Plex Sans JP', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+
+  --step--1: 0.82rem;
+  --step-0: 1rem;
+  --step-1: 1.2rem;
+  --step-2: 1.6rem;
+  --step-3: 2.3rem;
+  --step-4: clamp(2.6rem, 6vw, 4rem);
+
+  --radius: 14px;
+  --radius-lg: 22px;
+  --shadow: 0 1px 2px rgba(27, 29, 42, 0.06), 0 12px 30px -18px rgba(27, 29, 42, 0.3);
+
+  /* This design commits to one look: dusk / threshold light. The palette IS the
+     identity, so it renders the same regardless of the OS theme. Every surface
+     below paints its own background and color explicitly. */
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--mist);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal-deep);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
