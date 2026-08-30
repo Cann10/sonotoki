@@ -26,8 +26,11 @@ interface Draft {
 const has = (text: string, ...needles: string[]) =>
   needles.some((n) => text.includes(n));
 
-const BUY_VERBS = ['買わなきゃ', '買わないと', '買わねば', '買う', '買お', '購入', '補充', '仕入れ'];
-const LOW_STOCK = ['なくなりそう', 'なくなった', '切れそう', '切れた', '切らし', '残りわずか', '底をつき'];
+const BUY_VERBS = ['買わなきゃ', '買わないと', '買わねば', '買う', '買っ', '買お', '購入', '補充', '仕入れ'];
+const LOW_STOCK = [
+  'なくなりそう', 'なくなった', '切れそう', '切れた', '切らし', '残りわずか', '底をつき',
+  '在庫', '足りない', '足りなく', 'ストックが',
+];
 const FORGOT = ['置いてきた', '置いて来た', '置き忘れ', '忘れてきた', '忘れ物', 'に忘れた', 'で忘れた'];
 const MESSAGE = ['伝える', '伝えて', '言う', '報告', '連絡', '相談', '確認する', '聞く'];
 const DEADLINE = ['までに', '今日中', '今日のうち', '期限', '〆', '締め切り', '締切', 'マスト', '絶対今日'];
@@ -99,9 +102,14 @@ export function interpret(rawText: string): MomentInterpretation {
   const store = detectStore(text);
   const namedPlace = detectPlace(text);
   const timeBucket = detectTime(text);
-  const isShopping = has(text, ...LOW_STOCK) || has(text, ...BUY_VERBS) || has(text, 'ついでに', '寄って');
+  const buyIntent = has(text, ...LOW_STOCK) || has(text, ...BUY_VERBS);
+  // 「コンビニでコーヒー」のように、店名だけでも "その店に着いたとき" と読む
+  const isShopping = buyIntent || store != null || has(text, 'ついでに', '寄って', '買い物');
   const isForgot = has(text, ...FORGOT);
-  const backToHome = has(text, '帰ったら', '帰宅', '家に帰っ', 'うちに帰っ', '帰ってから', '家についたら', '家に着いたら');
+  const backToHome = has(
+    text,
+    '帰ったら', '帰宅', '家に帰っ', 'うちに帰っ', '帰ってから', '家についたら', '家に着いたら', '帰りに', '帰りがけ',
+  );
   const goingOut = has(text, '出かけたら', '出かける', '外出', '家を出る', '出発', 'お出かけ');
   const toWork = has(text, '出社', '会社に着いたら', '会社で', '職場で', '職場に着', 'オフィスで', '仕事場で');
 
@@ -124,17 +132,16 @@ export function interpret(rawText: string): MomentInterpretation {
     });
   }
 
-  // 2. 買い物・在庫切れ → 次にお店に着いたとき（繰り返し）
+  // 2. 買い物・在庫切れ・店名 → 次にお店に着いたとき
   if (isShopping && !isForgot) {
     const cat: PoiCategory = store ?? 'grocery';
-    const strong = has(text, ...BUY_VERBS) || has(text, ...LOW_STOCK);
     drafts.push({
       kind: 'place_arrival',
       poiCategory: cat,
       placeKind: 'poi_category',
       direction: 'arrival',
-      recurringHint: true,
-      confidence: strong ? (store ? 0.86 : 0.82) : 0.64,
+      recurringHint: buyIntent, // 「切れそう / 買う」の類だけ "くりかえし"
+      confidence: buyIntent ? (store ? 0.86 : 0.82) : store ? 0.7 : 0.6,
     });
   }
 

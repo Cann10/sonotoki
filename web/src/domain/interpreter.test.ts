@@ -53,6 +53,25 @@ describe('interpret — 覚えておきたい内容だけから Moment を推論
     expect(r.moments[0].humanLabel).toBe('次に薬局に着いたとき');
   });
 
+  it('店名だけでも「その店に着いたとき」と読む（くりかえしは付けない）', () => {
+    const r = interpret('コンビニでコーヒー');
+    expect(r.moments[0].kind).toBe('place_arrival');
+    expect(r.moments[0].poiCategory).toBe('convenience');
+    expect(r.moments[0].recurringHint).toBe(false);
+  });
+
+  it('「帰りに電話する」→ 次に帰宅したとき（買い物語が無ければ帰宅扱い）', () => {
+    const r = interpret('帰りに大家さんに電話する');
+    expect(r.moments[0].kind).toBe('home_arrival');
+  });
+
+  it('「トイレットペーパー在庫が心もとない」→ スーパー到着（在庫ワードを拾う）', () => {
+    const r = interpret('トイレットペーパー在庫が心もとない');
+    expect(r.moments[0].kind).toBe('place_arrival');
+    expect(r.moments[0].poiCategory).toBe('grocery');
+    expect(r.moments[0].recurringHint).toBe(true);
+  });
+
   it('「今日中に郵便出す」→ 期限ありの時間 Moment、確認を求める', () => {
     const r = interpret('今日中に郵便出す');
     expect(r.moments[0].kind).toBe('time');
