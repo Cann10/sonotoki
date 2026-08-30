@@ -60,11 +60,29 @@ src/
 
 **本番公開は人間の判断で行う**（アカウント作成・公開操作が伴うため）。準備は済んでいる：
 
+### Vercel（`vercel.json` 設定済み・404 対策込み）
+
+このリポジトリは monorepo（アプリは `web/`）。リポジトリ直下の **`vercel.json`** が
+ビルドと出力先を明示しているので、**Vercel の Root Directory は空（＝リポジトリ直下）のままでよい**。
+
+- Root Directory: **未設定（`.` / 空）** ← ここを `web` にしない
+- Framework Preset: **Other**（`vercel.json` の `framework: null` で指定済み）
+- Build / Output / Install: `vercel.json` が指定（`cd web && npm run build` → `web/dist`）
+- SPA なので全パスを `/index.html` に rewrite（`vercel.json` の `rewrites`）
+
+> もし Vercel 側で Root Directory を `web` にしている場合は、`web/vercel.json`（rewrite のみ）が
+> 効くので動くが、**推奨は Root Directory 空 ＋ リポジトリ直下 `vercel.json`**（設定が1箇所に集約される）。
+
+以前 `404: NOT_FOUND` になっていたのは、Root Directory が `web` に反映されておらず、
+リポジトリ直下に `package.json` も `index.html` も無いため Vercel が配信対象を見つけられなかったのが原因。
+`vercel.json` を追加してビルド元と出力先を明示することで解消する。
+
+### その他のホスト
+
 | 方法 | 手順 |
 |---|---|
-| **GitHub Pages（推奨）** | リポジトリを GitHub にpush → Settings → Pages → Source を「GitHub Actions」に。以降 `master` への push で `.github/workflows/deploy.yml` が lint→test→build→公開まで自動実行 |
+| **GitHub Pages** | Settings → Pages → Source を「GitHub Actions」に。以降 `main` への push で `.github/workflows/deploy.yml` が lint→test→build→公開 |
 | **Netlify** | リポジトリを繋ぐだけ。`netlify.toml` にビルド設定済み。または `web/dist` をドラッグ&ドロップ |
-| **Vercel** | リポジトリを繋ぐ。Root Directory を `web` に。Vite は自動検出 |
 | **Cloudflare Pages** | ビルドコマンド `npm run build`、出力 `dist`、ルート `web` |
 
 秘密情報（APIキー等）は一切使っていないため、どのホストでも追加設定なしで動く。

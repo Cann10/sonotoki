@@ -3,7 +3,7 @@
 # 有効化の手順（人間が一度だけ行う）:
 #   1. このリポジトリを GitHub にpush
 #   2. Settings → Pages → Build and deployment → Source を「GitHub Actions」に設定
-#   3. 以降、master への push で web/dist が自動公開される
+#   3. 以降、main への push で web/dist が自動公開される
 #
 # ここで秘密情報は使わない。GITHUB_TOKEN は Actions が自動発行するもの。
 
@@ -11,7 +11,7 @@ name: Deploy web to Pages
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths: ['web/**', '.github/workflows/deploy.yml']
   workflow_dispatch:
 
