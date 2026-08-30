@@ -6,7 +6,7 @@ import type { MomentCandidate, PlaceId, Trigger } from './types';
 
 export type ResolveResult =
   | { ok: true; trigger: Trigger }
-  | { ok: false; reason: string };
+  | { ok: false; reason: string; needsLearning?: boolean; phrase?: string };
 
 export function resolve(c: MomentCandidate): ResolveResult {
   switch (c.kind) {
@@ -26,21 +26,34 @@ export function resolve(c: MomentCandidate): ResolveResult {
 
     case 'place_arrival': {
       const placeId = placeIdFor(c);
-      if (!placeId) return { ok: false, reason: '場所が特定できませんでした' };
-      if (!isSimulatable(placeId)) return { ok: false, reason: `「${label(c)}」はまだ登録されていません` };
+      if (!placeId) return notFound(c);
+      if (!isSimulatable(placeId)) return notFound(c);
       return { ok: true, trigger: { primitive: 'place_enter', placeId } };
     }
 
     case 'place_departure': {
       const placeId = placeIdFor(c);
-      if (!placeId) return { ok: false, reason: '場所が特定できませんでした' };
-      if (!isSimulatable(placeId)) return { ok: false, reason: `「${label(c)}」はまだ登録されていません` };
+      if (!placeId) return notFound(c);
+      if (!isSimulatable(placeId)) return notFound(c);
       return { ok: true, trigger: { primitive: 'place_exit', placeId } };
     }
   }
 }
 
+function notFound(c: MomentCandidate): ResolveResult {
+  if (c.placePhrase) {
+    return {
+      ok: false,
+      reason: `「${c.placePhrase}」がどこか、まだ分かりません`,
+      needsLearning: true,
+      phrase: c.placePhrase,
+    };
+  }
+  return { ok: false, reason: `「${label(c)}」はまだ登録されていません` };
+}
+
 function placeIdFor(c: MomentCandidate): PlaceId | undefined {
+  if (c.learnedPlaceId) return c.learnedPlaceId; // 辞書が解決済み
   if (c.placeKind === 'work') return 'work';
   if (c.poiCategory) return `poi:${c.poiCategory}`;
   if (c.placeLabel) return `named:${c.placeLabel}`;

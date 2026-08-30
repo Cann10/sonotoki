@@ -8,6 +8,7 @@ import { MomentList } from './ui/MomentList';
 import { WorldSim } from './ui/WorldSim';
 import { SonotokiMoment } from './ui/SonotokiMoment';
 import { Onboarding } from './ui/Onboarding';
+import { LearnedPlaces } from './ui/LearnedPlaces';
 
 function placeOf(m: EngineMoment): string | null {
   return m.trigger.primitive === 'time' ? null : m.trigger.placeId;
@@ -69,6 +70,7 @@ export default function App() {
 
       <main className="stage">
         <WorldSim world={state.world} waitingByPlace={waitingByPlace} onEvent={actions.sim} />
+        <LearnedPlaces dict={state.placeDict} onForget={actions.forgetPlace} />
 
         <section className="compose">
           <NoteInput onSubmit={actions.submit} showExamples={!isEmpty} />
@@ -77,6 +79,7 @@ export default function App() {
               inference={state.lastInference}
               moment={lastMoment}
               onRepick={(i) => actions.repick(state.lastInference!.momentId, i)}
+              onTeach={(placeId) => actions.teachPlace(state.lastInference!.momentId, placeId)}
               onUndo={actions.undoLast}
               onDismiss={actions.dismissToast}
             />
@@ -89,6 +92,7 @@ export default function App() {
           <MomentList
             moments={state.moments}
             onRepick={actions.repick}
+            onTeach={actions.teachPlace}
             onRemove={actions.remove}
           />
         )}

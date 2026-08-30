@@ -69,15 +69,90 @@ describe('useSonotoki — 審査員がなぞるデモの一本道', () => {
     expect(second.result.current.state.fireQueue).toEqual([]);
   });
 
+  it('Personal Place Dictionary: 初回は場所を尋ね、次回からは聞かずに理解する', () => {
+    const { result } = renderHook(() => useSonotoki());
+
+    // 1回目: 「ジム」は未知 → needs_place で、教えて待ち
+    act(() => result.current.actions.submit('ジムに着いたらプロテイン'));
+    const id = result.current.state.moments[0].id;
+    expect(result.current.state.moments[0].state).toBe('needs_place');
+    expect(result.current.state.lastInference?.teach?.phrase).toBe('ジム');
+
+    // 状況を動かしても発火しない（まだ armed でない）
+    act(() => result.current.actions.sim({ type: 'enter', placeId: 'work' }));
+    expect(result.current.state.fireQueue).toEqual([]);
+    // 教えて待ちのトーストは残る
+    expect(result.current.state.lastInference?.teach?.phrase).toBe('ジム');
+
+    // 「ジム」= 職場 と教える
+    act(() => result.current.actions.teachPlace(id, 'work'));
+    expect(result.current.state.moments[0].state).toBe('armed');
+    expect(result.current.state.moments[0].trigger).toEqual({
+      primitive: 'place_enter',
+      placeId: 'work',
+    });
+    expect(result.current.state.moments[0].learnedPlace).toBe(true);
+    expect(result.current.state.placeDict).toEqual({ ジム: 'work' });
+    expect(result.current.state.lastInference?.learned).toEqual({ phrase: 'ジム', placeId: 'work' });
+
+    // 職場に着けば発火する
+    act(() => result.current.actions.sim({ type: 'exit', placeId: 'work' }));
+    act(() => result.current.actions.sim({ type: 'enter', placeId: 'work' }));
+    expect(result.current.state.fireQueue).toEqual([id]);
+
+    // 2回目の入力: もう聞かない。即 armed で「覚えている」
+    act(() => result.current.actions.done(id));
+    act(() => result.current.actions.submit('ジム出たらストレッチ'));
+    const m2 = result.current.state.moments[0];
+    expect(m2.state).toBe('armed');
+    expect(m2.learnedPlace).toBe(true);
+    expect(m2.trigger).toEqual({ primitive: 'place_exit', placeId: 'work' });
+    expect(result.current.state.lastInference?.teach).toBeUndefined();
+  });
+
+  it('学習した対応は localStorage に保存され、次回セッションで再利用される', () => {
+    const first = renderHook(() => useSonotoki());
+    act(() => first.result.current.actions.submit('図書館に行ったら予約本'));
+    const id = first.result.current.state.moments[0].id;
+    act(() => first.result.current.actions.teachPlace(id, 'poi:convenience'));
+
+    const second = renderHook(() => useSonotoki());
+    expect(second.result.current.state.placeDict).toEqual({ 図書館: 'poi:convenience' });
+    act(() => second.result.current.actions.submit('図書館に着いたら勉強'));
+    expect(second.result.current.state.moments[0].state).toBe('armed');
+    expect(second.result.current.state.moments[0].learnedPlace).toBe(true);
+    expect(second.result.current.state.moments[0].trigger).toEqual({
+      primitive: 'place_enter',
+      placeId: 'poi:convenience',
+    });
+  });
+
+  it('forgetPlace で対応を忘れ、次回はまた尋ねる', () => {
+    const { result } = renderHook(() => useSonotoki());
+    act(() => result.current.actions.submit('ジムに着いたら'));
+    act(() => result.current.actions.teachPlace(result.current.state.moments[0].id, 'work'));
+    expect(result.current.state.placeDict).toEqual({ ジム: 'work' });
+
+    act(() => result.current.actions.forgetPlace('ジム'));
+    expect(result.current.state.placeDict).toEqual({});
+
+    act(() => result.current.actions.submit('ジム出たらプロテイン'));
+    expect(result.current.state.moments[0].state).toBe('needs_place');
+  });
+
   it('最初から で全部消える', () => {
     const { result } = renderHook(() => useSonotoki());
     act(() => result.current.actions.submit('牛乳なくなりそう'));
     act(() => result.current.actions.sim({ type: 'time', timeBucket: 'this_evening' }));
+    act(() => result.current.actions.submit('ジムに着いたら'));
+    act(() => result.current.actions.teachPlace(result.current.state.moments[0].id, 'work'));
     act(() => result.current.actions.reset());
     expect(result.current.state.moments).toHaveLength(0);
     expect(result.current.state.world.location).toBe('outside');
+    expect(result.current.state.placeDict).toEqual({});
     // 直後にエフェクトが空の状態を書き戻すので、中身が空であることを確認する
     const persisted = JSON.parse(localStorage.getItem('sonotoki.v1') ?? '{}');
     expect(persisted.moments).toEqual([]);
+    expect(persisted.placeDict).toEqual({});
   });
 });

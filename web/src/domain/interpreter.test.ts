@@ -97,3 +97,64 @@ describe('interpret — 覚えておきたい内容だけから Moment を推論
     }
   });
 });
+
+describe('interpret — Personal Place Dictionary（独自の場所の呼び方）', () => {
+  it('辞書に無い呼び方は「教えて」候補になる（着いたら）', () => {
+    const r = interpret('ジムに着いたらプロテイン飲む');
+    expect(r.moments[0].kind).toBe('place_arrival');
+    expect(r.moments[0].placePhrase).toBe('ジム');
+    expect(r.moments[0].needsPlaceLearning).toBe(true);
+    expect(r.moments[0].learnedPlaceId).toBeUndefined();
+  });
+
+  it('辞書に無い呼び方（出るとき）も拾う', () => {
+    const r = interpret('ジム出たらプロテイン');
+    expect(r.moments[0].kind).toBe('place_departure');
+    expect(r.moments[0].placePhrase).toBe('ジム');
+    expect(r.moments[0].needsPlaceLearning).toBe(true);
+  });
+
+  it('辞書にある呼び方は、聞かずに実際の場所へ解決する', () => {
+    const dict = { ジム: 'work' as const };
+    const r = interpret('ジム出たらストレッチ', dict);
+    expect(r.moments[0].kind).toBe('place_departure');
+    expect(r.moments[0].learnedPlaceId).toBe('work');
+    expect(r.moments[0].needsPlaceLearning).toBe(false);
+    expect(r.moments[0].confidence).toBeGreaterThanOrEqual(0.85);
+    expect(r.needsUserConfirmation).toBe(false);
+  });
+
+  it('「実家に忘れた」→ 実家を出るとき（belongings）', () => {
+    const r = interpret('財布、実家に忘れた');
+    expect(r.moments[0].kind).toBe('place_departure');
+    expect(r.moments[0].placePhrase).toBe('実家');
+    expect(r.category).toBe('belongings');
+  });
+
+  it('「駅前のカフェに寄ったら」→ カフェ（助詞・修飾を落として拾う）', () => {
+    const r = interpret('駅前のカフェに寄ったら新刊チェック');
+    expect(r.moments[0].placePhrase).toBe('カフェ');
+    expect(r.moments[0].kind).toBe('place_arrival');
+  });
+
+  it('場所でない語（ネット等）は独自の場所にしない', () => {
+    const r = interpret('替えのフィルター、ネットで買う');
+    expect(r.moments[0].placePhrase).toBeUndefined();
+    expect(r.moments[0].needsPlaceLearning).toBeFalsy();
+    // 買う → スーパー到着に落ちる
+    expect(r.moments[0].kind).toBe('place_arrival');
+  });
+
+  it('組み込みの場所（大学）は辞書機構を通らない', () => {
+    const r = interpret('傘、大学に置いてきた');
+    expect(r.moments[0].placePhrase).toBeUndefined();
+    expect(r.moments[0].needsPlaceLearning).toBeFalsy();
+  });
+
+  it('コア入力（牛乳なくなりそう）は一切影響を受けない', () => {
+    const r = interpret('牛乳なくなりそう');
+    expect(r.moments[0].kind).toBe('place_arrival');
+    expect(r.moments[0].poiCategory).toBe('grocery');
+    expect(r.moments[0].placePhrase).toBeUndefined();
+  });
+});

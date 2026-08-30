@@ -34,6 +34,12 @@ export interface MomentCandidate {
   recurringHint: boolean;
   confidence: number; // 0..1
   humanLabel: string; // 「次にスーパーに着いたとき」
+  /** ユーザー独自の呼び方（「ジム」「実家」など）。組み込みの場所名では設定しない。 */
+  placePhrase?: string;
+  /** その呼び方を Personal Place Dictionary が解決できたときの実際の場所。 */
+  learnedPlaceId?: PlaceId;
+  /** 独自の呼び方だがまだ辞書に無い → ユーザーに一度だけ場所を尋ねる。 */
+  needsPlaceLearning?: boolean;
 }
 
 export interface MomentInterpretation {
@@ -77,7 +83,14 @@ export interface Moment {
   createdAt: number;
   firedCount: number;
   lastFiredAt?: number;
+  /** このメモが独自の呼び方から生まれた場合、その呼び方（「ジム」など）。 */
+  placePhrase?: string;
+  /** その呼び方を辞書が解決した（＝「覚えています」表示の対象）。 */
+  learnedPlace?: boolean;
 }
+
+/** Personal Place Dictionary: ユーザーの自然な呼び方 → 実際の場所。 */
+export type PlaceDict = Record<string, PlaceId>;
 
 // --- Simulator world ---
 

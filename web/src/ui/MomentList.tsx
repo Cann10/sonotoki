@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react';
-import { interpret, type EngineMoment } from '../domain';
+import { interpret, placeLabel, type EngineMoment, type PlaceId } from '../domain';
+import { TeachPlace } from './TeachPlace';
 
 interface Props {
   moments: EngineMoment[];
   onRepick: (id: string, candidateIndex: number) => void;
+  onTeach: (id: string, placeId: PlaceId) => void;
   onRemove: (id: string) => void;
 }
 
 const SECTIONS: { key: string; title: string; match: (m: EngineMoment) => boolean }[] = [
+  { key: 'teach', title: '場所を教えてください', match: (m) => m.state === 'needs_place' },
   {
     key: 'waiting',
     title: '待っているそのとき',
@@ -17,7 +20,7 @@ const SECTIONS: { key: string; title: string; match: (m: EngineMoment) => boolea
   { key: 'done', title: 'すんだこと', match: (m) => m.state === 'done' },
 ];
 
-export function MomentList({ moments, onRepick, onRemove }: Props) {
+export function MomentList({ moments, onRepick, onTeach, onRemove }: Props) {
   if (moments.length === 0) return null;
 
   return (
@@ -34,7 +37,12 @@ export function MomentList({ moments, onRepick, onRemove }: Props) {
             <ul className="moment-list__items">
               {items.map((m) => (
                 <li key={m.id}>
-                  <MomentCard moment={m} onRepick={onRepick} onRemove={onRemove} />
+                  <MomentCard
+                    moment={m}
+                    onRepick={onRepick}
+                    onTeach={onTeach}
+                    onRemove={onRemove}
+                  />
                 </li>
               ))}
             </ul>
@@ -48,15 +56,18 @@ export function MomentList({ moments, onRepick, onRemove }: Props) {
 function MomentCard({
   moment,
   onRepick,
+  onTeach,
   onRemove,
 }: {
   moment: EngineMoment;
   onRepick: (id: string, candidateIndex: number) => void;
+  onTeach: (id: string, placeId: PlaceId) => void;
   onRemove: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const done = moment.state === 'done';
   const waitingAgain = moment.state === 'awaiting_next';
+  const needsPlace = moment.state === 'needs_place';
 
   const candidates = useMemo(
     () => (editing ? interpret(moment.originalText).moments.slice(0, 3) : []),
@@ -64,30 +75,58 @@ function MomentCard({
   );
 
   return (
-    <article className={`memo${done ? ' memo--done' : ''}${waitingAgain ? ' memo--again' : ''}`}>
+    <article
+      className={`memo${done ? ' memo--done' : ''}${waitingAgain ? ' memo--again' : ''}${
+        needsPlace ? ' memo--teach' : ''
+      }`}
+    >
       <p className="memo__text">{moment.originalText}</p>
 
-      <div className="memo__thread" aria-hidden="true">
-        <span className="memo__thread-line" />
-      </div>
+      {needsPlace ? (
+        <TeachPlace
+          phrase={moment.placePhrase ?? 'その場所'}
+          onPick={(placeId) => onTeach(moment.id, placeId)}
+          compact
+        />
+      ) : (
+        <>
+          <div className="memo__thread" aria-hidden="true">
+            <span className="memo__thread-line" />
+          </div>
 
-      <div className="memo__moment">
-        <span className="memo__moment-label">{moment.humanLabel}</span>
-        <span className="memo__tags">
-          {moment.recurring && <span className="tag tag--loop">くりかえし</span>}
-          {moment.firedCount > 0 && (
-            <span className="tag tag--count">{moment.firedCount}回 戻ってきた</span>
-          )}
-          {moment.timeBackstop && <span className="tag">時間でも念のため</span>}
-          {moment.lowConfidence && !done && <span className="tag tag--unsure">AIが迷っています</span>}
-        </span>
-      </div>
+          <div className="memo__moment">
+            <span className="memo__moment-label">{moment.humanLabel}</span>
+            <span className="memo__tags">
+              {moment.learnedPlace && moment.placePhrase && moment.trigger.primitive !== 'time' && (
+                <span className="tag tag--learned">
+                  🧠 「{moment.placePhrase}」= {placeLabel(moment.trigger.placeId)}
+                </span>
+              )}
+              {moment.recurring && <span className="tag tag--loop">くりかえし</span>}
+              {moment.firedCount > 0 && (
+                <span className="tag tag--count">{moment.firedCount}回 戻ってきた</span>
+              )}
+              {moment.timeBackstop && <span className="tag">時間でも念のため</span>}
+              {moment.lowConfidence && !done && (
+                <span className="tag tag--unsure">AIが迷っています</span>
+              )}
+            </span>
+          </div>
+        </>
+      )}
 
-      {!done && (
+      {!done && !needsPlace && (
         <div className="memo__tools">
           <button type="button" className="memo__tool" onClick={() => setEditing((v) => !v)}>
             直す
           </button>
+          <button type="button" className="memo__tool" onClick={() => onRemove(moment.id)}>
+            やめる
+          </button>
+        </div>
+      )}
+      {needsPlace && (
+        <div className="memo__tools">
           <button type="button" className="memo__tool" onClick={() => onRemove(moment.id)}>
             やめる
           </button>

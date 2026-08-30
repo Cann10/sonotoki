@@ -4,17 +4,20 @@
 // "[次のそのとき]" is NOT a time snooze: a Moment only re-arms once the situation
 // it belongs to is no longer true, then fires again the next time it becomes true.
 
+import { placeLabel } from './places';
 import { resolve } from './resolver';
 import type {
   Moment,
   MomentCandidate,
   MomentInterpretation,
+  PlaceId,
   SituationEvent,
   Trigger,
   WorldState,
 } from './types';
 
-export type EngineMomentState = Moment['state'] | 'fired';
+// 'needs_place' = 独自の場所の呼び方を、ユーザーがまだ実際の場所に結びつけていない。
+export type EngineMomentState = Moment['state'] | 'fired' | 'needs_place';
 
 export interface EngineMoment extends Omit<Moment, 'state'> {
   state: EngineMomentState;
@@ -70,6 +73,49 @@ export function armMoment(
     state: 'armed',
     createdAt: now,
     firedCount: 0,
+    placePhrase: candidate.placePhrase,
+    learnedPlace: candidate.learnedPlaceId != null,
+  };
+}
+
+/**
+ * 独自の場所の呼び方だが辞書に無い候補から、「場所を教えて」待ちの Moment を作る。
+ * trigger は仮置き（needs_place の間はエンジンが評価しない）。
+ */
+export function buildLearningMoment(
+  interpretation: MomentInterpretation,
+  candidate: MomentCandidate,
+  opts: ArmOptions = {},
+): EngineMoment {
+  const now = opts.now ?? Date.now();
+  return {
+    id: opts.id ?? newId(),
+    originalText: interpretation.originalText,
+    humanLabel: candidate.humanLabel,
+    kind: candidate.kind,
+    trigger: { primitive: 'time', timeBucket: 'this_evening' }, // 仮置き
+    recurring: candidate.recurringHint,
+    lowConfidence: false,
+    state: 'needs_place',
+    createdAt: now,
+    firedCount: 0,
+    placePhrase: candidate.placePhrase,
+    learnedPlace: false,
+  };
+}
+
+/** needs_place の Moment に実際の場所を教えて armed にする。 */
+export function resolveLearnedMoment(m: EngineMoment, placeId: PlaceId): EngineMoment {
+  const primitive = m.kind === 'place_departure' ? 'place_exit' : 'place_enter';
+  const phrase = m.placePhrase ?? placeLabel(placeId);
+  const humanLabel =
+    m.kind === 'place_departure' ? `次に${phrase}を出るとき` : `次に${phrase}に着いたとき`;
+  return {
+    ...m,
+    trigger: { primitive, placeId },
+    humanLabel,
+    state: 'armed',
+    learnedPlace: true,
   };
 }
 
