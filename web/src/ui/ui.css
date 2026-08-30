@@ -809,6 +809,18 @@
     /* leave room for iOS Safari toolbars when pinned */
     top: max(6px, env(safe-area-inset-top));
   }
+  /* 横スクロールで場所が隠れないよう、狭い画面では折り返す */
+  .world__strip {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .world__rail {
+    display: none;
+  }
+  .place {
+    padding: 0.5em 0.8em;
+    font-size: 0.95rem;
+  }
   .world__time {
     margin-left: 0;
     width: 100%;

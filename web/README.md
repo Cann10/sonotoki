@@ -47,8 +47,19 @@ src/
 
 ## デプロイ
 
-静的サイト。`npm run build` の `dist/` をそのまま配信できる（`vite.config.ts` で `base: './'` 指定済み、
-サブパス配信可）。Netlify / Vercel / GitHub Pages / Cloudflare Pages いずれも可。
+静的サイト。バックエンドも環境変数も不要。`npm run build` の `dist/` をそのまま配信できる
+（`vite.config.ts` で `base: './'` 指定済み、サブパス配信可）。
+
+**本番公開は人間の判断で行う**（アカウント作成・公開操作が伴うため）。準備は済んでいる：
+
+| 方法 | 手順 |
+|---|---|
+| **GitHub Pages（推奨）** | リポジトリを GitHub にpush → Settings → Pages → Source を「GitHub Actions」に。以降 `master` への push で `.github/workflows/deploy.yml` が lint→test→build→公開まで自動実行 |
+| **Netlify** | リポジトリを繋ぐだけ。`netlify.toml` にビルド設定済み。または `web/dist` をドラッグ&ドロップ |
+| **Vercel** | リポジトリを繋ぐ。Root Directory を `web` に。Vite は自動検出 |
+| **Cloudflare Pages** | ビルドコマンド `npm run build`、出力 `dist`、ルート `web` |
+
+秘密情報（APIキー等）は一切使っていないため、どのホストでも追加設定なしで動く。
 
 ## SwiftUI 版との関係
 

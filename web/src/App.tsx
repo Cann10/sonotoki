@@ -53,7 +53,7 @@ export default function App() {
             }}
             onBlur={() => setConfirmReset(false)}
           >
-            {confirmReset ? 'もう一度タップで消去' : 'リセット'}
+            {confirmReset ? 'もう一度で消去' : 'リセット'}
           </button>
         </div>
         <p className="thesis">

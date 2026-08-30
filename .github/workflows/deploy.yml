@@ -1,0 +1,56 @@
+# Web版「そのとき」を GitHub Pages に公開するワークフロー。
+#
+# 有効化の手順（人間が一度だけ行う）:
+#   1. このリポジトリを GitHub にpush
+#   2. Settings → Pages → Build and deployment → Source を「GitHub Actions」に設定
+#   3. 以降、master への push で web/dist が自動公開される
+#
+# ここで秘密情報は使わない。GITHUB_TOKEN は Actions が自動発行するもの。
+
+name: Deploy web to Pages
+
+on:
+  push:
+    branches: [master]
+    paths: ['web/**', '.github/workflows/deploy.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

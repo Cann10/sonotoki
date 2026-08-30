@@ -1,0 +1,14 @@
+# Netlify にそのまま繋ぐ場合の設定。GitHub Pages を使うなら不要。
+[build]
+  base    = "web"
+  command = "npm run build"
+  publish = "web/dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# 単一ページ（クライアントルーティングなし）だが、将来の deep link 用に保険。
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
