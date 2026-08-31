@@ -1,14 +1,17 @@
-// Per-browser persistence. Everything stays on the device (plan: アカウント不要 / 完全ローカル).
+// Per-browser persistence. Everything stays on the device (アカウント不要 / 完全ローカル).
 
+import { freshDict } from './placeDictionary';
 import type { EngineMoment } from './engine';
 import type { PlaceDict, WorldState } from './types';
 
-const KEY = 'sonotoki.v1';
+// v2: Personal Place Dictionary が 1ラベル → 複数場所（PlaceId[]）に変更。
+// 旧 v1 データ（1:1）は互換性が無いので読み込まず、初期状態から始める。
+const KEY = 'sonotoki.v2';
 
 export interface PersistedState {
   moments: EngineMoment[];
   world: WorldState;
-  /** Personal Place Dictionary: ユーザーの呼び方 → 実際の場所。 */
+  /** placeKey → 登録済みの実場所群。 */
   placeDict: PlaceDict;
 }
 
@@ -20,10 +23,12 @@ export function load(): PersistedState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<PersistedState>;
     if (!parsed || !Array.isArray(parsed.moments) || !parsed.world) return null;
+    const dict = parsed.placeDict;
+    const valid = dict && Object.values(dict).every((v) => Array.isArray(v));
     return {
       moments: parsed.moments,
       world: parsed.world,
-      placeDict: parsed.placeDict ?? {}, // 旧データには無い
+      placeDict: valid ? (dict as PlaceDict) : freshDict(),
     };
   } catch {
     return null;

@@ -1,14 +1,30 @@
-import { dictEntries, placeLabel } from '../domain';
-import type { PlaceDict } from '../domain';
+import { useState } from 'react';
+import { dictEntries, placeLabel, stripPlaces } from '../domain';
+import type { PlaceDict, PlaceId } from '../domain';
 
 interface Props {
   dict: PlaceDict;
-  onForget: (phrase: string) => void;
+  /** いま使われている（armed 等の）意味ラベル。組み込みでも表示して店を足せるように。 */
+  activeLabelKeys: Set<string>;
+  onAddPlace: (labelKey: string, placeId: PlaceId) => void;
+  onRemovePlace: (labelKey: string, placeId: PlaceId) => void;
+  onForgetLabel: (labelKey: string) => void;
 }
 
-/** 覚えた「呼び方 → 場所」の一覧。成長がひと目で分かるようにする。 */
-export function LearnedPlaces({ dict, onForget }: Props) {
-  const entries = dictEntries(dict);
+/** 覚えた「呼び方 → 複数の場所」。使うほど育つのがひと目で分かる。 */
+export function LearnedPlaces({
+  dict,
+  activeLabelKeys,
+  onAddPlace,
+  onRemovePlace,
+  onForgetLabel,
+}: Props) {
+  const [adding, setAdding] = useState<string | null>(null);
+
+  // 初期状態（組み込みラベルが1店ずつ・未使用）は隠す。使ったもの／育ったものを見せる。
+  const entries = dictEntries(dict).filter(
+    (e) => !e.isDefault || e.placeIds.length > 1 || activeLabelKeys.has(e.key),
+  );
   if (entries.length === 0) return null;
 
   return (
@@ -21,15 +37,57 @@ export function LearnedPlaces({ dict, onForget }: Props) {
           <li key={e.key} className="learned__item">
             <span className="learned__phrase">{e.key}</span>
             <span className="learned__arrow">→</span>
-            <span className="learned__place">{placeLabel(e.placeId)}</span>
-            <button
-              type="button"
-              className="learned__forget"
-              aria-label={`「${e.key}」を忘れる`}
-              onClick={() => onForget(e.key)}
-            >
-              ×
-            </button>
+            <span className="learned__places">
+              {e.placeIds.map((pid) => (
+                <span key={pid} className="learned__place">
+                  {placeLabel(pid)}
+                  <button
+                    type="button"
+                    className="learned__remove"
+                    aria-label={`「${e.key}」から ${placeLabel(pid)} を外す`}
+                    onClick={() => onRemovePlace(e.key, pid)}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                className="learned__add"
+                onClick={() => setAdding(adding === e.key ? null : e.key)}
+              >
+                ＋場所
+              </button>
+            </span>
+            {!e.isDefault && (
+              <button
+                type="button"
+                className="learned__forget"
+                aria-label={`「${e.key}」を忘れる`}
+                onClick={() => onForgetLabel(e.key)}
+              >
+                忘れる
+              </button>
+            )}
+            {adding === e.key && (
+              <span className="learned__picker teach teach--compact">
+                {stripPlaces()
+                  .filter((p) => !e.placeIds.includes(p.id))
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="teach__place"
+                      onClick={() => {
+                        onAddPlace(e.key, p.id);
+                        setAdding(null);
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+              </span>
+            )}
           </li>
         ))}
       </ul>

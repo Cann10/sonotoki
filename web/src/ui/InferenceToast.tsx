@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { placeLabel, type EngineMoment, type PlaceId } from '../domain';
+import {
+  expandPlaceIds,
+  placeLabel,
+  type EngineMoment,
+  type PlaceDict,
+  type PlaceId,
+} from '../domain';
 import type { LastInference } from '../store/useSonotoki';
 import { TeachPlace } from './TeachPlace';
 
 interface Props {
   inference: LastInference;
   moment: EngineMoment | null;
+  dict: PlaceDict;
   onRepick: (candidateIndex: number) => void;
   onTeach: (placeId: PlaceId) => void;
   onUndo: () => void;
@@ -15,6 +22,7 @@ interface Props {
 export function InferenceToast({
   inference,
   moment,
+  dict,
   onRepick,
   onTeach,
   onUndo,
@@ -60,7 +68,7 @@ export function InferenceToast({
           )}
           {!inference.learned && moment.learnedPlace && moment.placePhrase && (
             <p className="toast__learned">
-              「{moment.placePhrase}」= {triggerPlaceLabel(moment)} と覚えています
+              「{moment.placePhrase}」= {triggerPlaceLabel(moment, dict)} と覚えています
             </p>
           )}
           {inference.needsConfirm && inference.interpretation.ambiguityNote && (
@@ -106,6 +114,7 @@ export function InferenceToast({
   );
 }
 
-function triggerPlaceLabel(m: EngineMoment): string {
-  return m.trigger.primitive === 'time' ? '' : placeLabel(m.trigger.placeId);
+function triggerPlaceLabel(m: EngineMoment, dict: PlaceDict): string {
+  if (m.trigger.primitive === 'time') return '';
+  return expandPlaceIds(m.trigger.ref, dict).map(placeLabel).join('・');
 }

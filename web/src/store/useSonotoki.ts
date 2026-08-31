@@ -3,16 +3,18 @@ import {
   applySituation,
   armMoment,
   buildLearningMoment,
-  forgetPlace,
-  interpret,
+  clear,
+  forgetLabel,
+  freshDict,
   INITIAL_WORLD,
+  interpret,
   learnPlace,
   load,
   markDone,
   markNext,
+  removePlace,
   resolveLearnedMoment,
   save,
-  clear,
   type EngineMoment,
   type MomentInterpretation,
   type PlaceDict,
@@ -43,7 +45,9 @@ type Action =
   | { type: 'submit'; text: string }
   | { type: 'repick'; momentId: string; candidateIndex: number }
   | { type: 'teachPlace'; momentId: string; placeId: PlaceId }
-  | { type: 'forgetPlace'; phrase: string }
+  | { type: 'addPlace'; labelKey: string; placeId: PlaceId }
+  | { type: 'removePlace'; labelKey: string; placeId: PlaceId }
+  | { type: 'forgetLabel'; labelKey: string }
   | { type: 'remove'; id: string }
   | { type: 'undoLast' }
   | { type: 'dismissToast' }
@@ -57,7 +61,7 @@ function initState(): State {
   return {
     moments: persisted?.moments ?? [],
     world: persisted?.world ?? { ...INITIAL_WORLD },
-    placeDict: persisted?.placeDict ?? {},
+    placeDict: persisted?.placeDict ?? freshDict(),
     fireQueue: [],
     lastInference: null,
   };
@@ -66,11 +70,27 @@ function initState(): State {
 function armFromInterpretation(
   interpretation: MomentInterpretation,
   index: number,
+  dict: PlaceDict,
   id?: string,
 ): EngineMoment | null {
   const candidate = interpretation.moments[index];
   if (!candidate) return null;
-  return armMoment(interpretation, candidate, id ? { id } : undefined);
+  return armMoment(interpretation, candidate, dict, id ? { id } : undefined);
+}
+
+/** 辞書が変わったら、場所を失った armed を needs_place に、場所を得た needs_place を armed に。 */
+function syncMomentsToDict(moments: EngineMoment[], dict: PlaceDict): EngineMoment[] {
+  return moments.map((m) => {
+    if (m.trigger.primitive === 'time' || m.trigger.ref.kind !== 'label') return m;
+    const hasPlace = (dict[m.trigger.ref.key]?.length ?? 0) > 0;
+    if (!hasPlace && (m.state === 'armed' || m.state === 'awaiting_next')) {
+      return { ...m, state: 'needs_place' };
+    }
+    if (hasPlace && m.state === 'needs_place') {
+      return resolveLearnedMoment(m);
+    }
+    return m;
+  });
 }
 
 function reducer(state: State, action: Action): State {
@@ -81,7 +101,6 @@ function reducer(state: State, action: Action): State {
       const interpretation = interpret(text, state.placeDict);
       const top = interpretation.moments[0];
 
-      // 独自の場所の呼び方で、まだ辞書に無い → 一度だけ「どこ?」と尋ねる
       if (top?.needsPlaceLearning && top.placePhrase) {
         const m = buildLearningMoment(interpretation, top);
         return {
@@ -96,12 +115,11 @@ function reducer(state: State, action: Action): State {
         };
       }
 
-      // 通常: 先頭候補を armed に（確認でブロックしない）
       let index = 0;
-      let moment = armFromInterpretation(interpretation, index);
+      let moment = armFromInterpretation(interpretation, index, state.placeDict);
       while (!moment && index < interpretation.moments.length - 1) {
         index += 1;
-        moment = armFromInterpretation(interpretation, index);
+        moment = armFromInterpretation(interpretation, index, state.placeDict);
       }
       if (!moment) return state;
       return {
@@ -122,6 +140,7 @@ function reducer(state: State, action: Action): State {
       const replacement = armFromInterpretation(
         interpretation,
         action.candidateIndex,
+        state.placeDict,
         action.momentId,
       );
       if (!replacement) return state;
@@ -140,11 +159,10 @@ function reducer(state: State, action: Action): State {
       const m = state.moments.find((x) => x.id === action.momentId);
       if (!m || !m.placePhrase) return state;
       const placeDict = learnPlace(state.placeDict, m.placePhrase, action.placeId);
-      const armed = resolveLearnedMoment(m, action.placeId);
       return {
         ...state,
         placeDict,
-        moments: state.moments.map((x) => (x.id === action.momentId ? armed : x)),
+        moments: syncMomentsToDict(state.moments, placeDict),
         fireQueue: state.fireQueue.filter((id) => id !== action.momentId),
         lastInference:
           state.lastInference?.momentId === action.momentId
@@ -157,8 +175,20 @@ function reducer(state: State, action: Action): State {
       };
     }
 
-    case 'forgetPlace':
-      return { ...state, placeDict: forgetPlace(state.placeDict, action.phrase) };
+    case 'addPlace': {
+      const placeDict = learnPlace(state.placeDict, action.labelKey, action.placeId);
+      return { ...state, placeDict, moments: syncMomentsToDict(state.moments, placeDict) };
+    }
+
+    case 'removePlace': {
+      const placeDict = removePlace(state.placeDict, action.labelKey, action.placeId);
+      return { ...state, placeDict, moments: syncMomentsToDict(state.moments, placeDict) };
+    }
+
+    case 'forgetLabel': {
+      const placeDict = forgetLabel(state.placeDict, action.labelKey);
+      return { ...state, placeDict, moments: syncMomentsToDict(state.moments, placeDict) };
+    }
 
     case 'remove':
       return {
@@ -185,14 +215,13 @@ function reducer(state: State, action: Action): State {
 
     case 'sim': {
       const now = Date.now();
-      const result = applySituation(state.moments, state.world, action.event, now);
+      const result = applySituation(state.moments, state.world, action.event, state.placeDict, now);
       const newlyFired = result.firedIds.filter((id) => !state.fireQueue.includes(id));
       return {
         ...state,
         moments: result.moments,
         world: result.world,
         fireQueue: [...state.fireQueue, ...newlyFired],
-        // 状況を動かし始めたら推論トーストは消す。ただし「場所を教えて」待ちは残す。
         lastInference: state.lastInference?.teach ? state.lastInference : null,
       };
     }
@@ -207,7 +236,7 @@ function reducer(state: State, action: Action): State {
     case 'next':
       return {
         ...state,
-        moments: markNext(state.moments, state.world, action.id),
+        moments: markNext(state.moments, state.world, action.id, state.placeDict),
         fireQueue: state.fireQueue.filter((id) => id !== action.id),
       };
 
@@ -216,7 +245,7 @@ function reducer(state: State, action: Action): State {
       return {
         moments: [],
         world: { ...INITIAL_WORLD },
-        placeDict: {},
+        placeDict: freshDict(),
         fireQueue: [],
         lastInference: null,
       };
@@ -237,7 +266,11 @@ export function useSonotoki() {
         dispatch({ type: 'repick', momentId, candidateIndex }),
       teachPlace: (momentId: string, placeId: PlaceId) =>
         dispatch({ type: 'teachPlace', momentId, placeId }),
-      forgetPlace: (phrase: string) => dispatch({ type: 'forgetPlace', phrase }),
+      addPlace: (labelKey: string, placeId: PlaceId) =>
+        dispatch({ type: 'addPlace', labelKey, placeId }),
+      removePlace: (labelKey: string, placeId: PlaceId) =>
+        dispatch({ type: 'removePlace', labelKey, placeId }),
+      forgetLabel: (labelKey: string) => dispatch({ type: 'forgetLabel', labelKey }),
       remove: (id: string) => dispatch({ type: 'remove', id }),
       undoLast: () => dispatch({ type: 'undoLast' }),
       dismissToast: () => dispatch({ type: 'dismissToast' }),

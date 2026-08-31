@@ -1,19 +1,16 @@
 // Rule-based interpreter — the "AI" that turns a plain sentence into a Moment.
 //
-// The real app swaps this for an on-device LLM (see plan §改訂3: Interpreter is an
-// adapter, the canonical output type stays the same). For the web prototype a
-// tuned Japanese keyword parser is enough to show the core idea — you write only
-// *what*, never *when / where* — and it runs instantly, offline, with no secrets.
-//
-// Personal Place Dictionary: 組み込みに無い場所の呼び方（「ジム」「実家」など）を
-// 拾い、辞書にあれば実際の場所へ、無ければ「一度だけ教えて」の候補にする。
+// Adapter: swap for an on-device LLM later; the canonical output type is stable.
+// A tuned Japanese keyword parser is enough for the demo — you write only *what*,
+// never *when / where*. Places are resolved deterministically by the Resolver /
+// Personal Place Dictionary (1 意味ラベル → 複数の実場所).
 
-import { lookupPlace } from './placeDictionary';
+import { lookupPlaces } from './placeDictionary';
 import type {
+  Anchor,
   MomentCandidate,
   MomentInterpretation,
   PlaceDict,
-  PlaceId,
   PoiCategory,
   TimeBucket,
 } from './types';
@@ -21,19 +18,17 @@ import type {
 interface Draft {
   kind: MomentCandidate['kind'];
   placeLabel?: string;
-  placeKind?: MomentCandidate['placeKind'];
-  poiCategory?: PoiCategory;
+  poiCategoryHint?: PoiCategory;
   direction?: MomentCandidate['direction'];
   timeBucket?: TimeBucket;
   recurringHint?: boolean;
   confidence: number;
   placePhrase?: string;
-  learnedPlaceId?: PlaceId;
   needsPlaceLearning?: boolean;
+  anchorHint?: Anchor;
 }
 
-const has = (text: string, ...needles: string[]) =>
-  needles.some((n) => text.includes(n));
+const has = (text: string, ...needles: string[]) => needles.some((n) => text.includes(n));
 
 const BUY_VERBS = ['買わなきゃ', '買わないと', '買わねば', '買う', '買っ', '買お', '購入', '補充', '仕入れ'];
 const LOW_STOCK = [
@@ -44,25 +39,20 @@ const FORGOT = ['置いてきた', '置いて来た', '置き忘れ', '忘れて
 const MESSAGE = ['伝える', '伝えて', '言う', '報告', '連絡', '相談', '確認する', '聞く'];
 const DEADLINE = ['までに', '今日中', '今日のうち', '期限', '〆', '締め切り', '締切', 'マスト', '絶対今日'];
 
-// 場所らしく見えるが場所ではない語（誤って「ここどこ?」と聞かないための除外）
-const NOT_A_PLACE = [
+const NOT_A_PLACE = new Set([
   'ネット', 'ねっと', '通販', 'アプリ', '電話', 'メール', '現金', 'カード', 'スマホ', 'ここ',
   'そこ', 'あそこ', '自分', '手元', '家', 'うち', '自宅', 'あと', '後', 'ついで', '近く',
   'ゴミ', 'ごみ', '手紙', '資料', '書類', '名前', '声', '車', '電車', 'バス', '疲れ', '熱',
   '元気', 'やる気', '結果', '答え', '返事', '芽', '本気',
-  // 「〜に行く」が「うまくいく」の意味になる副詞的表現
   '順調', 'スムーズ', '上手', '予定通り', '計画通り', '思い通り', '期待通り', 'うまく',
-];
+]);
 
-// 場所を示す言い回し。捕捉語の直後にこれが来たら、その手前を場所名とみなす。
-// 「〜に行く/寄る/着く」のように助詞つきに限定して、「うまく行ったら」等を拾わない。
 const ARRIVAL_CUES = ['に着い', 'についたら', 'に到着', 'に行っ', 'に寄っ', 'に立ち寄', 'で借り', 'で受け取', 'に返す', 'に返し', 'に返却', 'に帰っ'];
 const DEPART_CUES = ['を出る', 'を出た', 'から出る', 'から出た', 'から帰', '出たら', '出るとき', 'を後に', 'から戻'];
 const FORGOT_CUES = ['に忘れ', 'で忘れ', 'に置いてき', 'で無くし', 'でなくし', 'で失く'];
 
 const SEP = /(?:を|は|が|に|へ|で|と|も|や|の|から|まで|、|。|,|「|」|・|\s)/;
 
-/** 助詞・区切りより後ろの語を場所名として取り出す。 */
 function tailPhrase(before: string): string | undefined {
   const chunk = before
     .split(SEP)
@@ -70,8 +60,8 @@ function tailPhrase(before: string): string | undefined {
     .filter(Boolean)
     .pop();
   if (!chunk || chunk.length < 2 || chunk.length > 16) return undefined;
-  if (NOT_A_PLACE.includes(chunk)) return undefined;
-  if (/^[\d]+$/.test(chunk)) return undefined;
+  if (NOT_A_PLACE.has(chunk)) return undefined;
+  if (/^\d+$/.test(chunk)) return undefined;
   return chunk;
 }
 
@@ -81,48 +71,37 @@ interface CustomPlace {
   forgot: boolean;
 }
 
-/** 組み込みに無い、ユーザー独自の場所の呼び方を拾う。 */
 function detectCustomPlace(text: string): CustomPlace | undefined {
-  for (const cue of FORGOT_CUES) {
+  const before = (cue: string): string | undefined => {
     const i = text.indexOf(cue);
-    if (i > 0) {
-      const phrase = tailPhrase(text.slice(0, i));
-      if (phrase) return { phrase, kind: 'departure', forgot: true };
-    }
+    return i > 0 ? tailPhrase(text.slice(0, i)) : undefined;
+  };
+  for (const cue of FORGOT_CUES) {
+    const p = before(cue);
+    if (p) return { phrase: p, kind: 'departure', forgot: true };
   }
   for (const cue of DEPART_CUES) {
-    const i = text.indexOf(cue);
-    if (i > 0) {
-      const phrase = tailPhrase(text.slice(0, i));
-      if (phrase) return { phrase, kind: 'departure', forgot: false };
-    }
+    const p = before(cue);
+    if (p) return { phrase: p, kind: 'departure', forgot: false };
   }
   for (const cue of ARRIVAL_CUES) {
-    const i = text.indexOf(cue);
-    if (i > 0) {
-      const phrase = tailPhrase(text.slice(0, i));
-      if (phrase) return { phrase, kind: 'arrival', forgot: false };
-    }
+    const p = before(cue);
+    if (p) return { phrase: p, kind: 'arrival', forgot: false };
   }
   return undefined;
 }
 
-function detectPlace(text: string):
-  | { label: string; kind: 'named_place' | 'work' }
-  | undefined {
-  if (has(text, '大学', '学校', 'キャンパス', 'ゼミ', '研究室')) {
-    return { label: '大学', kind: 'named_place' };
-  }
-  if (has(text, '会社', '職場', 'オフィス', '仕事場', '出社')) {
-    return { label: '職場', kind: 'work' };
-  }
+/** 組み込みの場所。大学は学習ラベル、会社は work アンカー。 */
+function detectBuiltinPlace(text: string): 'school' | 'work' | undefined {
+  if (has(text, '大学', '学校', 'キャンパス', 'ゼミ', '研究室')) return 'school';
+  if (has(text, '会社', '職場', 'オフィス', '仕事場', '出社')) return 'work';
   return undefined;
 }
 
-function detectStore(text: string): PoiCategory | undefined {
-  if (has(text, '薬局', 'ドラッグストア', 'ドラッグ', '処方', '薬を')) return 'pharmacy';
-  if (has(text, 'コンビニ', 'セブン', 'ローソン', 'ファミマ')) return 'convenience';
-  if (has(text, 'スーパー', '食料品', 'マーケット')) return 'grocery';
+function detectStore(text: string): { label: string; hint: PoiCategory } | undefined {
+  if (has(text, '薬局', 'ドラッグストア', 'ドラッグ', '処方', '薬を')) return { label: '薬局', hint: 'pharmacy' };
+  if (has(text, 'コンビニ', 'セブン', 'ローソン', 'ファミマ')) return { label: 'コンビニ', hint: 'convenience' };
+  if (has(text, 'スーパー', '食料品', 'マーケット')) return { label: 'スーパー', hint: 'grocery' };
   return undefined;
 }
 
@@ -134,20 +113,12 @@ function detectTime(text: string): TimeBucket | undefined {
   return undefined;
 }
 
-const STORE_LABEL: Record<PoiCategory, string> = {
-  grocery: 'スーパー',
-  convenience: 'コンビニ',
-  pharmacy: '薬局',
-};
-
 function labelFor(d: Draft): string {
   switch (d.kind) {
-    case 'place_arrival': {
-      const name = d.poiCategory ? STORE_LABEL[d.poiCategory] : d.placeLabel ?? 'その場所';
-      return `次に${name}に着いたとき`;
-    }
+    case 'place_arrival':
+      return `次に${d.placeLabel ?? d.placePhrase ?? 'その場所'}に着いたとき`;
     case 'place_departure':
-      return `次に${d.placeLabel ?? 'その場所'}を出るとき`;
+      return `次に${d.placeLabel ?? d.placePhrase ?? 'その場所'}を出るとき`;
     case 'home_arrival':
       return '次に帰宅したとき';
     case 'leave_home':
@@ -159,7 +130,7 @@ function labelFor(d: Draft): string {
   }
 }
 
-function detectCategory(text: string): string | undefined {
+function detectCategory(text: string): string {
   if (has(text, ...FORGOT) || has(text, ...FORGOT_CUES)) return 'belongings';
   if (has(text, ...LOW_STOCK) || has(text, ...BUY_VERBS)) return 'shopping';
   if (has(text, ...MESSAGE)) return 'message';
@@ -172,8 +143,8 @@ export function interpret(rawText: string, dict: PlaceDict = {}): MomentInterpre
   const drafts: Draft[] = [];
 
   const store = detectStore(text);
-  const namedPlace = detectPlace(text);
-  const customPlace = !store && !namedPlace ? detectCustomPlace(text) : undefined;
+  const builtin = detectBuiltinPlace(text);
+  const customPlace = !store && !builtin ? detectCustomPlace(text) : undefined;
   const timeBucket = detectTime(text);
   const buyIntent = has(text, ...LOW_STOCK) || has(text, ...BUY_VERBS);
   const isShopping = buyIntent || store != null || has(text, 'ついでに', '寄って', '買い物');
@@ -187,79 +158,70 @@ export function interpret(rawText: string, dict: PlaceDict = {}): MomentInterpre
   const goingOut = has(text, '出かけたら', '出かける', '外出', '家を出る', '出発', 'お出かけ');
   const toWork = has(text, '出社', '会社に着いたら', '会社で', '職場で', '職場に着', 'オフィスで', '仕事場で');
 
-  // 0. Personal Place Dictionary — 独自の呼び方
+  const unknown = (phrase: string) => lookupPlaces(dict, phrase).length === 0;
+
+  // 0. 独自の呼び方
   if (customPlace) {
-    const learned = lookupPlace(dict, customPlace.phrase);
-    const kind = customPlace.kind === 'departure' ? 'place_departure' : 'place_arrival';
+    const needs = unknown(customPlace.phrase);
     drafts.push({
-      kind,
+      kind: customPlace.kind === 'departure' ? 'place_departure' : 'place_arrival',
       placeLabel: customPlace.phrase,
-      placeKind: 'named_place',
       direction: customPlace.kind,
+      confidence: needs ? 0.72 : 0.92,
       placePhrase: customPlace.phrase,
-      learnedPlaceId: learned,
-      needsPlaceLearning: learned == null,
-      confidence: learned != null ? 0.92 : 0.72,
+      needsPlaceLearning: needs,
     });
     if (customPlace.forgot) {
       drafts.push({
         kind: 'place_arrival',
         placeLabel: customPlace.phrase,
-        placeKind: 'named_place',
         direction: 'arrival',
-        placePhrase: customPlace.phrase,
-        learnedPlaceId: learned,
-        needsPlaceLearning: learned == null,
         confidence: 0.34,
+        placePhrase: customPlace.phrase,
+        needsPlaceLearning: needs,
       });
     }
   }
 
-  // 1. 置き忘れ・忘れ物 → その場所を出るとき（組み込みの場所）
-  if (isForgot && namedPlace) {
-    const conf = namedPlace.kind === 'work' ? 0.74 : 0.77;
-    drafts.push({
-      kind: 'place_departure',
-      placeLabel: namedPlace.label,
-      placeKind: namedPlace.kind === 'work' ? 'work' : 'named_place',
-      direction: 'departure',
-      confidence: conf,
-    });
-    drafts.push({
-      kind: 'place_arrival',
-      placeLabel: namedPlace.label,
-      placeKind: namedPlace.kind === 'work' ? 'work' : 'named_place',
-      direction: 'arrival',
-      confidence: 0.36,
-    });
+  // 1. 置き忘れ・忘れ物（組み込みの場所）
+  if (isForgot && builtin === 'school') {
+    const needs = unknown('大学');
+    drafts.push({ kind: 'place_departure', placeLabel: '大学', direction: 'departure', confidence: 0.77, placePhrase: '大学', needsPlaceLearning: needs });
+    drafts.push({ kind: 'place_arrival', placeLabel: '大学', direction: 'arrival', confidence: 0.36, placePhrase: '大学', needsPlaceLearning: needs });
+  }
+  if (isForgot && builtin === 'work') {
+    drafts.push({ kind: 'place_departure', placeLabel: '職場', direction: 'departure', confidence: 0.74, anchorHint: 'work' });
+    drafts.push({ kind: 'place_arrival', placeLabel: '職場', direction: 'arrival', confidence: 0.36, anchorHint: 'work' });
   }
 
   // 2. 買い物・在庫切れ・店名 → 次にお店に着いたとき
   if (isShopping && !isForgot && !customPlace) {
-    const cat: PoiCategory = store ?? 'grocery';
+    const s = store ?? { label: 'スーパー', hint: 'grocery' as PoiCategory };
     drafts.push({
       kind: 'place_arrival',
-      poiCategory: cat,
-      placeKind: 'poi_category',
+      placeLabel: s.label,
+      poiCategoryHint: s.hint,
       direction: 'arrival',
       recurringHint: buyIntent,
       confidence: buyIntent ? (store ? 0.86 : 0.82) : store ? 0.7 : 0.6,
+      placePhrase: s.label,
+      needsPlaceLearning: unknown(s.label),
     });
   }
 
   // 3. 出社したら
   if (toWork && !isForgot && !customPlace) {
-    drafts.push({ kind: 'work_arrival', placeKind: 'work', direction: 'arrival', confidence: 0.8 });
+    drafts.push({ kind: 'work_arrival', direction: 'arrival', confidence: 0.8, anchorHint: 'work' });
   }
 
   // 4. 帰宅したら
   if (backToHome && !isShopping) {
-    drafts.push({ kind: 'home_arrival', placeKind: 'home', direction: 'arrival', confidence: 0.79 });
+    drafts.push({ kind: 'home_arrival', direction: 'arrival', confidence: 0.79, anchorHint: 'home' });
   }
 
   // 5. 出かけたら
   if (goingOut && !customPlace) {
-    drafts.push({ kind: 'leave_home', placeKind: 'home', direction: 'departure', confidence: 0.73 });
+    drafts.push({ kind: 'leave_home', direction: 'departure', confidence: 0.73, anchorHint: 'home' });
   }
 
   // 6. 純粋な時間指定
@@ -282,11 +244,13 @@ export function interpret(rawText: string, dict: PlaceDict = {}): MomentInterpre
     drafts.push({ kind: 'time', timeBucket: timeBucket ?? 'this_evening', confidence: 0.28 });
     drafts.push({
       kind: 'place_arrival',
-      poiCategory: 'grocery',
-      placeKind: 'poi_category',
+      placeLabel: 'スーパー',
+      poiCategoryHint: 'grocery',
       direction: 'arrival',
       recurringHint: true,
       confidence: 0.24,
+      placePhrase: 'スーパー',
+      needsPlaceLearning: unknown('スーパー'),
     });
   }
 
@@ -298,8 +262,7 @@ export function interpret(rawText: string, dict: PlaceDict = {}): MomentInterpre
   const moments: MomentCandidate[] = drafts.map((d) => ({
     kind: d.kind,
     placeLabel: d.placeLabel,
-    placeKind: d.placeKind,
-    poiCategory: d.poiCategory,
+    poiCategoryHint: d.poiCategoryHint,
     direction: d.direction,
     timeBucket: d.timeBucket,
     hasDeadline: d.kind === 'time' ? false : hasDeadline,
@@ -307,8 +270,8 @@ export function interpret(rawText: string, dict: PlaceDict = {}): MomentInterpre
     confidence: Math.round(d.confidence * 100) / 100,
     humanLabel: labelFor(d),
     placePhrase: d.placePhrase,
-    learnedPlaceId: d.learnedPlaceId,
     needsPlaceLearning: d.needsPlaceLearning,
+    anchorHint: d.anchorHint,
   }));
 
   return { originalText: text, category, moments, needsUserConfirmation, ambiguityNote };

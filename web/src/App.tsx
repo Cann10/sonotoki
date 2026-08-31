@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import './ui/ui.css';
-import type { EngineMoment } from './domain';
+import { expandPlaceIds } from './domain';
 import { useSonotoki } from './store/useSonotoki';
 import { NoteInput } from './ui/NoteInput';
 import { InferenceToast } from './ui/InferenceToast';
@@ -10,10 +10,6 @@ import { SonotokiMoment } from './ui/SonotokiMoment';
 import { Onboarding } from './ui/Onboarding';
 import { LearnedPlaces } from './ui/LearnedPlaces';
 
-function placeOf(m: EngineMoment): string | null {
-  return m.trigger.primitive === 'time' ? null : m.trigger.placeId;
-}
-
 export default function App() {
   const { state, actions } = useSonotoki();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -22,10 +18,24 @@ export default function App() {
     const counts: Record<string, number> = {};
     for (const m of state.moments) {
       if (m.state !== 'armed' && m.state !== 'awaiting_next' && m.state !== 'fired') continue;
-      const place = placeOf(m);
-      if (place) counts[place] = (counts[place] ?? 0) + 1;
+      if (m.trigger.primitive === 'time') continue;
+      // semantic ラベルを、いま登録されている実場所へ展開してバッジ表示
+      for (const pid of expandPlaceIds(m.trigger.ref, state.placeDict)) {
+        counts[pid] = (counts[pid] ?? 0) + 1;
+      }
     }
     return counts;
+  }, [state.moments, state.placeDict]);
+
+  const activeLabelKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const m of state.moments) {
+      if (m.state === 'done') continue;
+      if (m.trigger.primitive !== 'time' && m.trigger.ref.kind === 'label') {
+        keys.add(m.trigger.ref.key);
+      }
+    }
+    return keys;
   }, [state.moments]);
 
   const firedId = state.fireQueue[0];
@@ -70,7 +80,13 @@ export default function App() {
 
       <main className="stage">
         <WorldSim world={state.world} waitingByPlace={waitingByPlace} onEvent={actions.sim} />
-        <LearnedPlaces dict={state.placeDict} onForget={actions.forgetPlace} />
+        <LearnedPlaces
+          dict={state.placeDict}
+          activeLabelKeys={activeLabelKeys}
+          onAddPlace={actions.addPlace}
+          onRemovePlace={actions.removePlace}
+          onForgetLabel={actions.forgetLabel}
+        />
 
         <section className="compose">
           <NoteInput onSubmit={actions.submit} showExamples={!isEmpty} />
@@ -78,6 +94,7 @@ export default function App() {
             <InferenceToast
               inference={state.lastInference}
               moment={lastMoment}
+              dict={state.placeDict}
               onRepick={(i) => actions.repick(state.lastInference!.momentId, i)}
               onTeach={(placeId) => actions.teachPlace(state.lastInference!.momentId, placeId)}
               onUndo={actions.undoLast}
@@ -91,6 +108,7 @@ export default function App() {
         {!isEmpty && (
           <MomentList
             moments={state.moments}
+            dict={state.placeDict}
             onRepick={actions.repick}
             onTeach={actions.teachPlace}
             onRemove={actions.remove}

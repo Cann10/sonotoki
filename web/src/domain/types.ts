@@ -1,19 +1,19 @@
 // Canonical domain types for「そのとき」.
-// These mirror the approved SwiftUI plan (§10 / §8) so the web prototype and the
-// later native app share one vocabulary. Nothing here depends on React or the DOM.
+// These mirror the SwiftUI port (ios/SonotokiKit) so web and native share one
+// vocabulary. Nothing here depends on React or the DOM.
 
 /** What kind of real-world situation should bring a memo back. */
 export type SemanticKind =
-  | 'place_arrival' // 着いたら（カテゴリ店 or 名前付きの場所）
-  | 'place_departure' // 出るとき（名前付きの場所）
+  | 'place_arrival' // 着いたら
+  | 'place_departure' // 出るとき
   | 'home_arrival' // 帰宅したとき
   | 'leave_home' // 出かけるとき
   | 'work_arrival' // 出社したとき
   | 'time'; // 時間帯（夕方 / 朝）
 
-export type PlaceKind = 'poi_category' | 'named_place' | 'home' | 'work';
+export type Anchor = 'home' | 'work';
 
-/** POI categories the simulator can model. */
+/** POI category hint（将来の「近くのスーパー全部」用。v1 は登録店で解決）。 */
 export type PoiCategory = 'grocery' | 'convenience' | 'pharmacy';
 
 export type TimeBucket = 'this_evening' | 'tomorrow_morning';
@@ -23,9 +23,9 @@ export type Direction = 'arrival' | 'departure';
 /** One way the interpreter thinks a memo could resurface. */
 export interface MomentCandidate {
   kind: SemanticKind;
-  placeLabel?: string; // 「スーパー」「大学」など、人が読むラベル
-  placeKind?: PlaceKind;
-  poiCategory?: PoiCategory;
+  /** 人が読むラベル（「スーパー」「大学」）。 */
+  placeLabel?: string;
+  poiCategoryHint?: PoiCategory;
   direction?: Direction;
   timeBucket?: TimeBucket;
   /** 入力から期限が読み取れたときだけ true（時間バックストップの条件）。 */
@@ -34,23 +34,23 @@ export interface MomentCandidate {
   recurringHint: boolean;
   confidence: number; // 0..1
   humanLabel: string; // 「次にスーパーに着いたとき」
-  /** ユーザー独自の呼び方（「ジム」「実家」など）。組み込みの場所名では設定しない。 */
+  /** 場所の呼び方（「ジム」「実家」「スーパー」）。帰宅/出社では未設定。 */
   placePhrase?: string;
-  /** その呼び方を Personal Place Dictionary が解決できたときの実際の場所。 */
-  learnedPlaceId?: PlaceId;
-  /** 独自の呼び方だがまだ辞書に無い → ユーザーに一度だけ場所を尋ねる。 */
+  /** その呼び方に、まだ実際の場所が1つも登録されていない → 一度だけ尋ねる。 */
   needsPlaceLearning?: boolean;
+  /** 「会社」「職場」など、固定アンカーに直結する場合（辞書を通さない）。 */
+  anchorHint?: Anchor;
 }
 
 export interface MomentInterpretation {
   originalText: string;
-  category?: string; // "shopping" | "belongings" | "errand" | "message" | ...
+  category?: string; // "shopping" | "belongings" | "errand" | "message"
   moments: MomentCandidate[]; // 確信度の高い順
   needsUserConfirmation: boolean;
   ambiguityNote?: string;
 }
 
-// --- Trigger primitives (the deterministic engine only knows these three) ---
+// --- Concrete places the simulator can be at ---
 
 export type PlaceId =
   | 'home'
@@ -60,12 +60,27 @@ export type PlaceId =
   | 'poi:pharmacy'
   | `named:${string}`;
 
+// --- Trigger primitives (the deterministic engine only knows these three) ---
+//
+// Trigger は semantic。場所は「意味ラベル」または固定アンカーで保持し、
+// Resolver が登録済みの複数 PlaceId に展開する（1ラベル → 複数店舗）。
+
+export type PlaceRef =
+  | { kind: 'anchor'; anchor: Anchor } // 家 / 職場（単一地点）
+  | { kind: 'label'; key: string } // placeKey。dict で複数 PlaceId に展開
+  | { kind: 'place'; placeId: PlaceId }; // 展開後の1地点（expandTriggers の出力）
+
 export type Trigger =
-  | { primitive: 'place_enter'; placeId: PlaceId }
-  | { primitive: 'place_exit'; placeId: PlaceId }
+  | { primitive: 'place_enter'; ref: PlaceRef }
+  | { primitive: 'place_exit'; ref: PlaceRef }
   | { primitive: 'time'; timeBucket: TimeBucket };
 
-// --- Moment: a memo that has been armed to a trigger ---
+// --- Personal Place Dictionary: 1 意味ラベル → 複数の実場所 ---
+
+/** placeKey（正規化した呼び方）→ 登録済みの実 PlaceId 群。 */
+export type PlaceDict = Record<string, PlaceId[]>;
+
+// --- Moment: a memo armed to a (semantic) trigger ---
 
 export type MomentState = 'armed' | 'awaiting_next' | 'done';
 
@@ -74,23 +89,20 @@ export interface Moment {
   originalText: string;
   humanLabel: string;
   kind: SemanticKind;
+  /** semantic。発火判定時に dict で複数 PlaceId へ展開される。 */
   trigger: Trigger;
   recurring: boolean;
   lowConfidence: boolean;
-  /** 時間でも念のため知らせる（期限が読み取れた / 手動で付けた場合のみ）。 */
   timeBackstop?: TimeBucket;
   state: MomentState;
   createdAt: number;
   firedCount: number;
   lastFiredAt?: number;
-  /** このメモが独自の呼び方から生まれた場合、その呼び方（「ジム」など）。 */
+  /** このメモの場所の呼び方（「ジム」など）。 */
   placePhrase?: string;
-  /** その呼び方を辞書が解決した（＝「覚えています」表示の対象）。 */
+  /** 独自の呼び方を辞書が解決した（＝「覚えています」表示の対象）。 */
   learnedPlace?: boolean;
 }
-
-/** Personal Place Dictionary: ユーザーの自然な呼び方 → 実際の場所。 */
-export type PlaceDict = Record<string, PlaceId>;
 
 // --- Simulator world ---
 
@@ -99,7 +111,6 @@ export type WorldLocation = 'outside' | PlaceId;
 
 export interface WorldState {
   location: WorldLocation;
-  /** 直近に通過した時間帯（同じ時間帯の連続発火を防ぐ）。 */
   lastTimeBucket?: TimeBucket;
 }
 

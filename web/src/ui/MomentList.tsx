@@ -1,9 +1,17 @@
 import { useMemo, useState } from 'react';
-import { interpret, placeLabel, type EngineMoment, type PlaceId } from '../domain';
+import {
+  expandPlaceIds,
+  interpret,
+  placeLabel,
+  type EngineMoment,
+  type PlaceDict,
+  type PlaceId,
+} from '../domain';
 import { TeachPlace } from './TeachPlace';
 
 interface Props {
   moments: EngineMoment[];
+  dict: PlaceDict;
   onRepick: (id: string, candidateIndex: number) => void;
   onTeach: (id: string, placeId: PlaceId) => void;
   onRemove: (id: string) => void;
@@ -20,7 +28,7 @@ const SECTIONS: { key: string; title: string; match: (m: EngineMoment) => boolea
   { key: 'done', title: 'すんだこと', match: (m) => m.state === 'done' },
 ];
 
-export function MomentList({ moments, onRepick, onTeach, onRemove }: Props) {
+export function MomentList({ moments, dict, onRepick, onTeach, onRemove }: Props) {
   if (moments.length === 0) return null;
 
   return (
@@ -39,6 +47,7 @@ export function MomentList({ moments, onRepick, onTeach, onRemove }: Props) {
                 <li key={m.id}>
                   <MomentCard
                     moment={m}
+                    dict={dict}
                     onRepick={onRepick}
                     onTeach={onTeach}
                     onRemove={onRemove}
@@ -55,11 +64,13 @@ export function MomentList({ moments, onRepick, onTeach, onRemove }: Props) {
 
 function MomentCard({
   moment,
+  dict,
   onRepick,
   onTeach,
   onRemove,
 }: {
   moment: EngineMoment;
+  dict: PlaceDict;
   onRepick: (id: string, candidateIndex: number) => void;
   onTeach: (id: string, placeId: PlaceId) => void;
   onRemove: (id: string) => void;
@@ -70,9 +81,14 @@ function MomentCard({
   const needsPlace = moment.state === 'needs_place';
 
   const candidates = useMemo(
-    () => (editing ? interpret(moment.originalText).moments.slice(0, 3) : []),
-    [editing, moment.originalText],
+    () => (editing ? interpret(moment.originalText, dict).moments.slice(0, 3) : []),
+    [editing, moment.originalText, dict],
   );
+
+  const learnedPlaces =
+    moment.trigger.primitive !== 'time'
+      ? expandPlaceIds(moment.trigger.ref, dict).map(placeLabel).join('・')
+      : '';
 
   return (
     <article
@@ -97,9 +113,9 @@ function MomentCard({
           <div className="memo__moment">
             <span className="memo__moment-label">{moment.humanLabel}</span>
             <span className="memo__tags">
-              {moment.learnedPlace && moment.placePhrase && moment.trigger.primitive !== 'time' && (
+              {moment.learnedPlace && moment.placePhrase && learnedPlaces && (
                 <span className="tag tag--learned">
-                  🧠 「{moment.placePhrase}」= {placeLabel(moment.trigger.placeId)}
+                  🧠 「{moment.placePhrase}」= {learnedPlaces}
                 </span>
               )}
               {moment.recurring && <span className="tag tag--loop">くりかえし</span>}

@@ -747,45 +747,84 @@
   margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 .learned__item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.4rem;
   background: var(--paper);
   border: 1px solid var(--paper-edge);
-  border-radius: 999px;
-  padding: 0.28em 0.4em 0.28em 0.75em;
+  border-radius: var(--radius);
+  padding: 0.4em 0.6em;
   font-size: var(--step--1);
   color: var(--ink);
 }
 .learned__phrase {
   font-family: var(--font-memo);
-  font-weight: 500;
+  font-weight: 700;
 }
 .learned__arrow {
   color: var(--thread);
 }
-.learned__place {
-  font-family: var(--font-memo);
+.learned__places {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
 }
-.learned__forget {
-  width: 1.4rem;
-  height: 1.4rem;
+.learned__place {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  font-family: var(--font-memo);
+  background: rgba(27, 29, 42, 0.06);
+  border-radius: 999px;
+  padding: 0.1em 0.15em 0.1em 0.55em;
+}
+.learned__remove {
+  width: 1.3rem;
+  height: 1.3rem;
   display: grid;
   place-items: center;
   border: none;
   border-radius: 50%;
   background: transparent;
   color: var(--thread);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   line-height: 1;
 }
-.learned__forget:hover {
-  background: rgba(27, 29, 42, 0.08);
+.learned__remove:hover {
+  background: rgba(27, 29, 42, 0.12);
   color: var(--ink);
+}
+.learned__add,
+.learned__forget {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 0.25em 0.7em;
+  font-size: var(--step--1);
+}
+.learned__add:hover,
+.learned__forget:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.learned__forget {
+  margin-left: auto;
+}
+.learned__picker {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--line);
 }
 
 /* ── the そのとき moment (signature) ──────────────────────── */
