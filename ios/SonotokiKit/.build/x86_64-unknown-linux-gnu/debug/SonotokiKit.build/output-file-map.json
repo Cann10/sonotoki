@@ -1,0 +1,41 @@
+{
+  "": {
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/master.swiftdeps"
+  },
+  "/pkg/Sources/SonotokiKit/Interpreter.swift": {
+    "dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Interpreter.d",
+    "object": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Interpreter.swift.o",
+    "swiftmodule": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Interpreter~partial.swiftmodule",
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Interpreter.swiftdeps"
+  },
+  "/pkg/Sources/SonotokiKit/Models.swift": {
+    "dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Models.d",
+    "object": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Models.swift.o",
+    "swiftmodule": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Models~partial.swiftmodule",
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Models.swiftdeps"
+  },
+  "/pkg/Sources/SonotokiKit/PlaceDictionary.swift": {
+    "dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/PlaceDictionary.d",
+    "object": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/PlaceDictionary.swift.o",
+    "swiftmodule": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/PlaceDictionary~partial.swiftmodule",
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/PlaceDictionary.swiftdeps"
+  },
+  "/pkg/Sources/SonotokiKit/Resolver.swift": {
+    "dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Resolver.d",
+    "object": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Resolver.swift.o",
+    "swiftmodule": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Resolver~partial.swiftmodule",
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/Resolver.swiftdeps"
+  },
+  "/pkg/Sources/SonotokiKit/RuleBasedInterpreter.swift": {
+    "dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/RuleBasedInterpreter.d",
+    "object": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/RuleBasedInterpreter.swift.o",
+    "swiftmodule": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/RuleBasedInterpreter~partial.swiftmodule",
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/RuleBasedInterpreter.swiftdeps"
+  },
+  "/pkg/Sources/SonotokiKit/TriggerEngine.swift": {
+    "dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/TriggerEngine.d",
+    "object": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/TriggerEngine.swift.o",
+    "swiftmodule": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/TriggerEngine~partial.swiftmodule",
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKit.build/TriggerEngine.swiftdeps"
+  }
+}

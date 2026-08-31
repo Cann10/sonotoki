@@ -4,14 +4,16 @@ Web版（`../web/`）のコア体験を iOS ネイティブへ。設計は `../d
 
 ## 現状（2026-08-31）
 
-作業マシンが **Windows で Xcode / Swift ツールチェーン無し**のため、
-**コンパイル・シミュレータ・実機検証はしていない**。Mac（2026-09-05 以降）で行う。
+`SonotokiKit`（コア）は **Docker の Swift Linux イメージで検証済み** — `swift build` 通過、
+**XCTest 51件 全 pass**（`SonotokiKit/test-linux.sh`、要 Docker Desktop 起動）。
+`App/`（SwiftData / SwiftUI / CoreLocation / UserNotifications）は Apple フレームワーク
+依存のため **Windows/Linux では検証不可 → Mac（2026-09-05 以降）**。
 
 | 済 | 内容 |
 |---|---|
 | ✅ | 設計・Web版分析（`../docs/iOS-MIGRATION.md`） |
-| ✅ | `SonotokiKit/` — プラットフォーム非依存のコアロジックを Swift へ移植（**未コンパイル**） |
-| ✅ | `SonotokiKit/Tests/` — Web の 57 テストの移植（**未実行**）。engine の armMoment 系を追補し web と対応 |
+| ✅ | `SonotokiKit/` — コアロジックの Swift 移植。**Linux で `swift build` 通過**（バグ2件修正: Package.swift の tools-version 5.10→6.0、Resolver.swift の三項演算子の型推論） |
+| ✅ | `SonotokiKit/Tests/` — **XCTest 51件 Linux で全 pass**（`./test-linux.sh`）。engine に armMoment 系5件を追補し web と対応 |
 | 🟡 | `App/Tests/SonotokiStoreTests.swift` — ストアの spec（submit→arm→situation→fire→done/next、辞書同期、永続化往復）。in-memory container + spy。**Xcode のテストターゲットに追加して実行** |
 | 🟡 | `App/` — SwiftUI アプリ層の**足場**（Store / Services / Views、**未コンパイル**）。詳細と Xcode 手順は `App/README.md` |
 | 🟡 | Core Location（`App/Services/LocationService.swift` = 方式(b) `CLMonitor` の骨組み。**実機で全 API 要検証**、方式(a)は Phase 0 で追加） |
@@ -50,11 +52,22 @@ Web の `web/src/domain/` を移植したもの。**canonical**。
 - **組み込みの場所**: 「大学/スーパー/コンビニ/薬局」は学習ラベル（Web は既定シード、iOS は初回に登録）。
   「会社/職場/出社」は `work` アンカー。
 
+## Mac 以外での検証（コアのみ）
+
+`SonotokiKit` は Foundation 値型だけなので、Docker の Swift Linux イメージで
+`swift build` / `swift test` が回る（`App/` は Apple フレームワーク依存で不可）。
+
+```bash
+cd ios/SonotokiKit
+./test-linux.sh          # Docker Desktop 起動が前提。swift test（51件）
+./test-linux.sh build    # ビルドのみ
+```
+
 ## Mac での開始手順（2026-09-05〜）
 
 ```bash
 cd ios/SonotokiKit
-swift test            # まず SonotokiKit のテストを通す（移植のズレを潰す）
+swift test            # まず SonotokiKit のテストを通す（Linux で 51件 pass 済み）
 ```
 
 その後 **`App/README.md`** の手順で Xcode に `App/Sonotoki/` の足場を取り込む

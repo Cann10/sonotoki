@@ -1,0 +1,4 @@
+/pkg/Tests/SonotokiKitTests/InterpreterTests.swift
+/pkg/Tests/SonotokiKitTests/PlaceDictionaryTests.swift
+/pkg/Tests/SonotokiKitTests/ResolverTests.swift
+/pkg/Tests/SonotokiKitTests/TriggerEngineTests.swift

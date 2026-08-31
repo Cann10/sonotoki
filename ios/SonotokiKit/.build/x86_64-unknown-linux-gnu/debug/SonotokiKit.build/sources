@@ -1,0 +1,6 @@
+/pkg/Sources/SonotokiKit/Interpreter.swift
+/pkg/Sources/SonotokiKit/Models.swift
+/pkg/Sources/SonotokiKit/PlaceDictionary.swift
+/pkg/Sources/SonotokiKit/Resolver.swift
+/pkg/Sources/SonotokiKit/RuleBasedInterpreter.swift
+/pkg/Sources/SonotokiKit/TriggerEngine.swift

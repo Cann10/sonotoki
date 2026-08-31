@@ -27,7 +27,7 @@ public func resolve(_ c: MomentCandidate, dictionary: PlaceDictionary) -> Resolv
 
     case .placeArrival, .placeDeparture:
         let make: (PlaceTarget) -> Trigger =
-            c.kind == .placeDeparture ? Trigger.placeExit : Trigger.placeEnter
+            c.kind == .placeDeparture ? { Trigger.placeExit($0) } : { Trigger.placeEnter($0) }
 
         if let anchor = c.anchorHint {
             return .ok(make(.anchor(anchor)))

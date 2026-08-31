@@ -1,0 +1,11 @@
+{
+  "": {
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKitPackageTests.build/master.swiftdeps"
+  },
+  "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKitPackageTests.derived/runner.swift": {
+    "dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKitPackageTests.build/runner.d",
+    "object": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKitPackageTests.build/runner.swift.o",
+    "swiftmodule": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKitPackageTests.build/runner~partial.swiftmodule",
+    "swift-dependencies": "/pkg/.build/x86_64-unknown-linux-gnu/debug/SonotokiKitPackageTests.build/runner.swiftdeps"
+  }
+}
