@@ -31,14 +31,21 @@ Web の `web/src/domain/` を移植したもの。**canonical**。
 | `TriggerEngine.swift` | `engine.ts` | 状態機械（armed→fired→done/awaitingNext）。`applySituation` / `markDone` / `markNext` / `armMoment` / `buildLearningMoment` / `resolveLearnedMoment` |
 | `RuleBasedInterpreter.swift` | `interpreter.ts` | 端末内ルールベース日本語解析（`Interpreter` protocol の v1 実装） |
 
-### Web版との主な差分
+### Web版との対応（1ラベル → 複数場所は両方同じ構造）
 
-- **場所の表現**: Web の単一 `PlaceId` → iOS は `PlaceTarget`（`.anchor(home/work)` または `.label(key)`）。
-  1 ラベルに複数の実 `PlaceRef` が紐づき、そのどれか一つに enter/exit で成立。
-- **リージョン token**: Core Location のリージョン識別子を `"anchor:home"` / `"label:<key>:<refID>"` で符号化。
-  `PlaceTarget.matches(token:)` で決定論的に照合。
+| 概念 | Web (`web/src/domain`) | iOS (`SonotokiKit`) |
+|---|---|---|
+| 辞書 | `PlaceDict = Record<placeKey, PlaceId[]>` | `PlaceDictionary`（`key → LearnedLabel.refs: [PlaceRef]`） |
+| Moment が持つ場所 | semantic `Trigger.ref = { kind:'label', key }` | semantic `Trigger` = `.placeEnter(.label(key))` |
+| 展開 | `expandPlaceIds(ref, dict)` / `expandTriggers(trigger, dict)` | `expandRegionTokens(target, dict)` / `expandTriggers(trigger, dict)` |
+| 発火判定 | `expandPlaceIds(...).includes(event.placeId)` | `PlaceTarget.matches(token:)`（label は prefix、region は exact） |
+| 展開後の1地点 | `PlaceRef { kind:'place', placeId }` | `PlaceTarget.region(token:)` |
+
+- **リージョン token**: `"anchor:home"` / `"anchor:work"` / `"label:<key>:<refID>"`。CLMonitor の条件は
+  `expandRegionTokens` の結果で登録する。
 - **World**: Web の `WorldState.location`（単一）→ `WorldSnapshot.insideTokens`（重なり得る複数）。
-- **組み込みの場所**: 「大学」も学習ラベル（初回に登録）。「会社/職場/出社」は `work` アンカー。
+- **組み込みの場所**: 「大学/スーパー/コンビニ/薬局」は学習ラベル（Web は既定シード、iOS は初回に登録）。
+  「会社/職場/出社」は `work` アンカー。
 
 ## Mac での開始手順（2026-09-05〜）
 

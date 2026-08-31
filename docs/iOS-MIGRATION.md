@@ -154,13 +154,21 @@ enum Trigger: Codable, Sendable, Equatable {
   case placeExit(PlaceTarget)
   case time(TimeBucket)
 }
-enum PlaceTarget: Codable, Sendable, Equatable {
-  case anchor(Anchor)     // .home / .work
-  case label(String)      // LearnedLabel.key（1..N refs）
+enum PlaceTarget: Codable, Sendable, Equatable, Hashable {
+  case anchor(Anchor)         // .home / .work
+  case label(String)          // LearnedLabel.key（1..N refs）— Moment が保持するのはこれ
+  case region(token: String)  // 展開後の1地点（expandTriggers の出力）
 }
+
+// Resolver が semantic を「登録済みの複数」に展開する（web の expandPlaceIds / expandTriggers と同一構造）
+func expandRegionTokens(_ target: PlaceTarget, dictionary: PlaceDictionary) -> [String]
+func expandTriggers(_ trigger: Trigger, dictionary: PlaceDictionary) -> [Trigger]
 ```
 
-**発火判定（決定論）**: `placeEnter(.label("スーパー"))` は、その label の **いずれかの `PlaceRef`** に enter したら成立。`contextActive` は「現在地がその label の ref のどれかの中」。
+**Moment は semantic な `.label(key)` だけ保持**。`Resolver.expandRegionTokens` が、いま登録されている
+`PlaceRef` の CL リージョン token 群（`"label:<key>:<refID>"`）に展開する。CLMonitor の条件はこの結果で登録。
+
+**発火判定（決定論）**: `placeEnter(.label("スーパー"))` は、その label の **いずれかの `PlaceRef`** に enter したら成立。`contextActive` は「現在地がその label の ref のどれかの中」。`PlaceTarget.matches(token:)` で照合（label は prefix、region は exact）。
 
 **初回に全部登録させない**: 「スーパー」系メモ初出 → `needs_place` → 「どこ？」で **1店だけ**登録して arm。次に「スーパー」系メモ → 既存 label にヒット、**聞かない**。別店でも鳴らしたくなったら「"スーパー"に店を足す」動線（LearnedLabel 画面 or 発火通知の「別の場所でも」）。
 

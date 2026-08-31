@@ -128,9 +128,11 @@ public struct MomentInterpretation: Codable, Sendable, Equatable {
 /// - `.anchor` は単一地点（家 / 職場）。
 /// - `.label` は「いつもの場所」の呼び方。1 ラベルに複数の実 `PlaceRef` が紐づき、
 ///   そのどれか一つに enter/exit で成立する（スーパー → 複数店舗）。
+/// - `.region` は展開後の1地点（`Resolver.expandTriggers` の出力。CL リージョン token）。
 public enum PlaceTarget: Codable, Sendable, Equatable, Hashable {
     case anchor(Anchor)
-    case label(String)   // LearnedLabel.key
+    case label(String)          // LearnedLabel.key（semantic。Moment が保持するのはこれ）
+    case region(token: String)  // 展開後の1地点
 
     /// Core Location のリージョン識別子（token）がこのターゲットに属するか。
     /// token 形式: "anchor:home" / "anchor:work" / "label:<key>:<refID>"
@@ -138,6 +140,7 @@ public enum PlaceTarget: Codable, Sendable, Equatable, Hashable {
         switch self {
         case .anchor(let a): return token == "anchor:\(a.rawValue)"
         case .label(let key): return token.hasPrefix("label:\(key):")
+        case .region(let t): return token == t
         }
     }
 
@@ -145,6 +148,7 @@ public enum PlaceTarget: Codable, Sendable, Equatable, Hashable {
         switch self {
         case .anchor(let a): return a.displayName
         case .label(let key): return key
+        case .region(let t): return t
         }
     }
 }

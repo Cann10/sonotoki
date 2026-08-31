@@ -44,3 +44,30 @@ public func resolve(_ c: MomentCandidate, dictionary: PlaceDictionary) -> Resolv
         return .needsLearning(phrase: phrase)
     }
 }
+
+// MARK: - Expansion（1 semantic ターゲット → 登録済みの複数の実場所 / 複数 Trigger）
+
+/// semantic な `PlaceTarget` → 監視すべき Core Location リージョン識別子（token）群。
+/// web の `expandPlaceIds` に対応。CLMonitor の条件セットアップに使う。
+public func expandRegionTokens(_ target: PlaceTarget, dictionary: PlaceDictionary) -> [String] {
+    switch target {
+    case .anchor(let a):
+        return ["anchor:\(a.rawValue)"]
+    case .region(let token):
+        return [token]
+    case .label(let key):
+        return dictionary.label(forKey: key)?.regionTokens ?? []
+    }
+}
+
+/// semantic Trigger → 展開後の per-place Trigger 群。web の `expandTriggers` に対応。
+public func expandTriggers(_ trigger: Trigger, dictionary: PlaceDictionary) -> [Trigger] {
+    switch trigger {
+    case .time:
+        return [trigger]
+    case .placeEnter(let target):
+        return expandRegionTokens(target, dictionary: dictionary).map { .placeEnter(.region(token: $0)) }
+    case .placeExit(let target):
+        return expandRegionTokens(target, dictionary: dictionary).map { .placeExit(.region(token: $0)) }
+    }
+}
