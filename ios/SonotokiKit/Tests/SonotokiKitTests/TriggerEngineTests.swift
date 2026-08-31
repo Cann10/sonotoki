@@ -210,4 +210,47 @@ final class TriggerEngineTests: XCTestCase {
                                              event: .enter(token: "anchor:home"), now: t0)
         XCTAssertEqual(r.firedIDs, ["bill"])
     }
+
+    // MARK: armMoment（parity with web engine.test.ts › armMoment）
+
+    /// The armed Moment holds a *semantic* label trigger, never a concrete region.
+    func test_armMoment_holdsSemanticLabel_notConcretePlace() {
+        let d = dict()
+        let m = arm("牛乳なくなりそう", id: "milk", d)
+        XCTAssertEqual(m.trigger, .placeEnter(.label("スーパー")))
+        if case .placeEnter(.region) = m.trigger { XCTFail("should not be a concrete region") }
+    }
+
+    /// 入力から期限が読み取れたら、位置 Moment にも時間バックストップが付く。
+    func test_armMoment_readDeadline_addsTimeBackstop() {
+        let d = dict()
+        let r0 = interp.interpret("傘、ジムに置いてきた 今日中に", dictionary: d)
+        let m = TriggerEngine.armMoment(interpretation: r0, candidate: r0.moments[0],
+                                        dictionary: d, id: "x", now: t0)!
+        XCTAssertFalse(m.trigger.isTime)
+        XCTAssertNotNil(m.timeBackstop)
+    }
+
+    /// 期限が無ければ位置 Moment に時間バックストップは付かない（自動付与しない）。
+    func test_armMoment_noDeadline_noBackstop() {
+        let d = dict()
+        let m = arm("牛乳なくなりそう", id: "milk", d)
+        XCTAssertNil(m.timeBackstop)
+    }
+
+    /// アンカー解決（帰宅）は「覚えた場所」表示の対象にしない。
+    func test_armMoment_anchorResolved_notLearnedPlace() {
+        let d = dict()
+        let m = arm("帰ったら電気代払う", id: "bill", d)
+        XCTAssertFalse(m.learnedPlace)
+    }
+
+    /// forceTimeBackstop を渡したときだけ、期限なしでもバックストップが付く（手動追加）。
+    func test_armMoment_forceTimeBackstop() {
+        let d = dict()
+        let r0 = interp.interpret("牛乳なくなりそう", dictionary: d)
+        let m = TriggerEngine.armMoment(interpretation: r0, candidate: r0.moments[0],
+                                        dictionary: d, id: "x", now: t0, forceTimeBackstop: true)!
+        XCTAssertNotNil(m.timeBackstop)
+    }
 }

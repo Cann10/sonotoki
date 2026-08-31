@@ -22,7 +22,11 @@ as a starting point for the Mac session (2026-09-05+), not finished code.
    - Capability: **Time Sensitive Notifications** (Signing & Capabilities → Push? no —
      it's `com.apple.developer.usernotifications.time-sensitive` entitlement)
    - Background Modes: Location updates (method b), Remote notifications **off**
-7. Build to a **real device** — geofencing and Time-Sensitive delivery don't work
+7. Add a **unit test target**; add `App/Tests/SonotokiStoreTests.swift` to it and
+   turn on *Testability* for the Debug build (it uses `@testable import Sonotoki`).
+   It runs the whole submit → arm → situation → fire → done/next path against an
+   in-memory `ModelContainer` with spy services — no device needed.
+8. Build to a **real device** — geofencing and Time-Sensitive delivery don't work
    in the simulator.
 
 ## File map
@@ -44,6 +48,7 @@ as a starting point for the Mac session (2026-09-05+), not finished code.
 | `Views/LearnedPlacesView.swift` | Personal Place Dictionary management (1 label → N places), `FlowRow` layout | med |
 | `Views/MyPlacesView.swift` | 家/職場 anchor registration + learned places | med |
 | `Views/OnboardingView.swift` | 3-beat onboarding, notification permission | med |
+| `Tests/SonotokiStoreTests.swift` | store spec: submit → arm → situation → fire → done/next, dict sync, persistence round-trip (in-memory container + spy services) | med |
 
 ## Known gaps / TODO on device
 

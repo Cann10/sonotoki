@@ -11,7 +11,8 @@ Web版（`../web/`）のコア体験を iOS ネイティブへ。設計は `../d
 |---|---|
 | ✅ | 設計・Web版分析（`../docs/iOS-MIGRATION.md`） |
 | ✅ | `SonotokiKit/` — プラットフォーム非依存のコアロジックを Swift へ移植（**未コンパイル**） |
-| ✅ | `SonotokiKit/Tests/` — Web の 57 テストの移植（**未実行**） |
+| ✅ | `SonotokiKit/Tests/` — Web の 57 テストの移植（**未実行**）。engine の armMoment 系を追補し web と対応 |
+| 🟡 | `App/Tests/SonotokiStoreTests.swift` — ストアの spec（submit→arm→situation→fire→done/next、辞書同期、永続化往復）。in-memory container + spy。**Xcode のテストターゲットに追加して実行** |
 | 🟡 | `App/` — SwiftUI アプリ層の**足場**（Store / Services / Views、**未コンパイル**）。詳細と Xcode 手順は `App/README.md` |
 | 🟡 | Core Location（`App/Services/LocationService.swift` = 方式(b) `CLMonitor` の骨組み。**実機で全 API 要検証**、方式(a)は Phase 0 で追加） |
 | 🟡 | Local Notifications（`App/Services/NotificationService.swift` = カテゴリ + [やった]/[次のそのとき] + Time-Sensitive + 時間バックストップ） |
