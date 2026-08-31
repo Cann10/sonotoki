@@ -10,3 +10,9 @@ coverage/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Swift / SwiftPM
+.build/
+*.xcodeproj/xcuserdata/
+.swiftpm/
+Package.resolved
