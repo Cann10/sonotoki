@@ -143,9 +143,6 @@
 /* ── world (places) — a light, map-like panel ─────────────── */
 
 .world {
-  position: sticky;
-  top: 8px;
-  z-index: 20;
   margin-top: 1.35rem;
   background: var(--surface-2);
   border: 1px solid var(--line);
