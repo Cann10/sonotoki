@@ -12,11 +12,13 @@ Web版（`../web/`）のコア体験を iOS ネイティブへ。設計は `../d
 | ✅ | 設計・Web版分析（`../docs/iOS-MIGRATION.md`） |
 | ✅ | `SonotokiKit/` — プラットフォーム非依存のコアロジックを Swift へ移植（**未コンパイル**） |
 | ✅ | `SonotokiKit/Tests/` — Web の 57 テストの移植（**未実行**） |
-| ⏳ | Xcode プロジェクト（`Sonotoki.xcodeproj`）— Mac で作成 |
-| ⏳ | SwiftUI アプリ層 — Store / LocationManager / NotificationManager / Views |
-| ⏳ | Core Location（`CLServiceSession` + `CLMonitor`、20枠、Bootstrap） |
-| ⏳ | Local Notifications（[やった]/[次のそのとき] アクション） |
-| ⏳ | SwiftData 永続化（`MomentRecord` / `LearnedLabel` / `PlaceRef`） |
+| 🟡 | `App/` — SwiftUI アプリ層の**足場**（Store / Services / Views、**未コンパイル**）。詳細と Xcode 手順は `App/README.md` |
+| 🟡 | Core Location（`App/Services/LocationService.swift` = 方式(b) `CLMonitor` の骨組み。**実機で全 API 要検証**、方式(a)は Phase 0 で追加） |
+| 🟡 | Local Notifications（`App/Services/NotificationService.swift` = カテゴリ + [やった]/[次のそのとき] + Time-Sensitive + 時間バックストップ） |
+| 🟡 | SwiftData 永続化（`App/Store/Persistence.swift` = `MomentRecord` / `LearnedLabelRecord` / `PlaceRefRecord` / `AnchorRecord` / `EventRecord` / `AppStateRecord` + 値型マッパ） |
+| ⏳ | Xcode プロジェクト（`Sonotoki.xcodeproj`）— Mac で作成（`App/README.md` の手順） |
+| ⏳ | フォント同梱（Shippori Mincho / IBM Plex Sans JP）、Info.plist 権限文言、Time Sensitive entitlement |
+| ⏳ | 候補差し替え（ちがう/直す）シート、時間帯ロールオーバー、SLC による20枠再計算、方式(a)比較 |
 
 ## `SonotokiKit`（SPM ローカルパッケージ）
 
@@ -54,5 +56,8 @@ cd ios/SonotokiKit
 swift test            # まず SonotokiKit のテストを通す（移植のズレを潰す）
 ```
 
-その後 Xcode で `Sonotoki` アプリターゲットを作成し、`SonotokiKit` をローカルパッケージ依存に追加。
-`../docs/iOS-MIGRATION.md` §3 の順で Store → Location → Notifications → Views。
+その後 **`App/README.md`** の手順で Xcode に `App/Sonotoki/` の足場を取り込む
+（`Sonotoki` ターゲット作成 → 全ファイル追加 → `SonotokiKit` をローカルパッケージ依存に →
+フォント同梱 → Info.plist 権限 → 実機ビルド）。まず compile を通し、次に
+`LocationService`（方式b `CLMonitor`）の各 API を実機で検証、その上で Phase 0
+（方式a との48h比較 / §14ゲート A–G）へ。

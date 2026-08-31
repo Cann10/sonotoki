@@ -17,7 +17,7 @@
 | `PlaceId` | `home` / `work` / `poi:grocery` / `poi:convenience` / `poi:pharmacy` / `named:<任意>` | 場所の識別子 |
 | `Moment` | id, originalText, humanLabel, kind, trigger, recurring, lowConfidence, timeBackstop?, state, createdAt, firedCount, lastFiredAt?, **placePhrase?**, **learnedPlace?** | あずけたメモ＝トリガーに武装された1件 |
 | `MomentState` | `armed` / `awaiting_next` / `done`（＋エンジンが `fired` / `needs_place` を追加） | 状態機械の状態 |
-| `PlaceDict` | `Record<正規化キー, PlaceId>` | Personal Place Dictionary。**現状は 1呼び方 → 1場所** |
+| `PlaceDict` | `Record<正規化キー, PlaceId[]>` | Personal Place Dictionary。**1呼び方 → 複数場所**（web/iOS とも。§3.2） |
 | `WorldState` | `{ location: 'outside' | PlaceId, lastTimeBucket? }` | **シミュレーターの世界**（デモ専用）。iOS では実センサーに置換 |
 | `SituationEvent` | `enter` / `exit` / `time` | 状況イベント。Web はボタン、iOS は Core Location / スケジューラ |
 | `MomentInterpretation` / `MomentCandidate` | interpreter の出力（confidence 付き候補配列） | AI 層の I/F |
