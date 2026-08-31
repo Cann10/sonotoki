@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { dictEntries, placeLabel, stripPlaces } from '../domain';
 import type { PlaceDict, PlaceId } from '../domain';
+import { Icon } from './Icon';
 
 interface Props {
   dict: PlaceDict;
@@ -47,7 +48,7 @@ export function LearnedPlaces({
                     aria-label={`「${e.key}」から ${placeLabel(pid)} を外す`}
                     onClick={() => onRemovePlace(e.key, pid)}
                   >
-                    ×
+                    <Icon name="close" size={12} />
                   </button>
                 </span>
               ))}
@@ -56,7 +57,8 @@ export function LearnedPlaces({
                 className="learned__add"
                 onClick={() => setAdding(adding === e.key ? null : e.key)}
               >
-                ＋場所
+                <Icon name="plus" size={12} />
+                場所
               </button>
             </span>
             {!e.isDefault && (

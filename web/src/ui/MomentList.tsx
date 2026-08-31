@@ -115,7 +115,7 @@ function MomentCard({
             <span className="memo__tags">
               {moment.learnedPlace && moment.placePhrase && learnedPlaces && (
                 <span className="tag tag--learned">
-                  🧠 「{moment.placePhrase}」= {learnedPlaces}
+                  「{moment.placePhrase}」＝ {learnedPlaces}
                 </span>
               )}
               {moment.recurring && <span className="tag tag--loop">くりかえし</span>}
@@ -124,7 +124,7 @@ function MomentCard({
               )}
               {moment.timeBackstop && <span className="tag">時間でも念のため</span>}
               {moment.lowConfidence && !done && (
-                <span className="tag tag--unsure">AIが迷っています</span>
+                <span className="tag tag--unsure">たしかめる</span>
               )}
             </span>
           </div>

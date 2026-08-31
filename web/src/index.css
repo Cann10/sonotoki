@@ -1,41 +1,55 @@
 /* ───────────────────────────────────────────────────────────
    そのとき — design tokens & base
-   Concept: dusk / threshold. The moment between one situation and
-   the next. Quiet cool light everywhere; one warm amber lamp for
-   the instant a memo comes back.
+   Concept: a note set down in a calm, quiet space. When its
+   moment comes, a warm light finds it. The page stays hushed
+   and neutral; warmth floods in only at「そのときです。」.
    ─────────────────────────────────────────────────────────── */
 
 :root {
-  --ink: #1b1d2a; /* deep dusk indigo — primary text */
-  --ink-soft: #4a4d63;
-  --dusk: #2e3350; /* raised dark surface (sim world) */
-  --paper: #f7f4ec; /* the memo you wrote — warm paper */
-  --paper-edge: #e9e3d2;
-  --mist: #eceef4; /* app ground — the space between situations */
-  --panel: #e2e5ef; /* section panels */
-  --signal: #f0a741; /* amber lamp — ONLY the そのとき moment */
-  --signal-deep: #a45f0d; /* amber that is safe as text on paper */
-  --thread: #8a8fa8; /* in transit / dormant / hairlines */
-  --line: rgba(27, 29, 42, 0.12);
-  --line-strong: rgba(27, 29, 42, 0.24);
+  /* ground & surfaces — cool-neutral, a whisper of warmth, never cream */
+  --paper: #ecedeb; /* app ground */
+  --surface: #f8f8f6; /* raised cards, input */
+  --surface-2: #f2f2f0; /* recessed / inset panels */
 
-  --font-memo: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
-  --font-ui: 'IBM Plex Sans JP', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  /* ink */
+  --ink: #23222a; /* primary text, solid buttons */
+  --ink-2: #5a5860; /* secondary text */
+  --ink-3: #8f8d94; /* captions, section labels */
+  --line: #e2e0da; /* hairlines, card borders */
+  --line-2: #d6d4cd; /* stronger hairline */
 
-  --step--1: 0.82rem;
-  --step-0: 1rem;
-  --step-1: 1.2rem;
-  --step-2: 1.6rem;
-  --step-3: 2.3rem;
-  --step-4: clamp(2.6rem, 6vw, 4rem);
+  /* the "moment" — warm, used with extreme restraint (thread node, fire) */
+  --moment: #bd6a37; /* warm terracotta-amber, text-safe on paper */
+  --moment-soft: #d98f5f; /* softer warm for accents on dark/warm */
+  --glow: #e7a877; /* the warm field of the fire screen (flat) */
+  --on-glow: #2b2119; /* ink on the warm field */
+  --on-glow-2: #6a4a30; /* secondary ink on the warm field */
 
-  --radius: 14px;
-  --radius-lg: 22px;
-  --shadow: 0 1px 2px rgba(27, 29, 42, 0.06), 0 12px 30px -18px rgba(27, 29, 42, 0.3);
+  /* type */
+  --font-display: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --font-ui: 'IBM Plex Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
 
-  /* This design commits to one look: dusk / threshold light. The palette IS the
-     identity, so it renders the same regardless of the OS theme. Every surface
-     below paints its own background and color explicitly. */
+  /* type scale (fluid where it helps) */
+  --t-caption: 0.78rem;
+  --t-small: 0.875rem;
+  --t-body: 1rem;
+  --t-lead: 1.125rem;
+  --t-title: 1.375rem;
+  --t-display: clamp(2rem, 1.4rem + 2.6vw, 2.75rem);
+  --t-hero: clamp(2.6rem, 1.6rem + 4.4vw, 4rem);
+
+  /* radius */
+  --r-card: 16px;
+  --r-btn: 11px;
+  --r-pill: 999px;
+
+  /* elevation — soft, warm-tinted, low contrast */
+  --shadow-1: 0 1px 2px rgba(35, 34, 42, 0.04), 0 6px 16px -8px rgba(35, 34, 42, 0.1);
+  --shadow-2: 0 2px 6px rgba(35, 34, 42, 0.05), 0 20px 44px -16px rgba(35, 34, 42, 0.18);
+
+  /* spacing rhythm */
+  --gap-section: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+
   color-scheme: light;
 }
 
@@ -50,11 +64,13 @@ body {
 }
 
 body {
-  background: var(--mist);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-ui);
-  font-size: var(--step-0);
-  line-height: 1.6;
+  font-size: var(--t-body);
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -67,12 +83,17 @@ button {
   font: inherit;
   color: inherit;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 :focus-visible {
-  outline: 2px solid var(--signal-deep);
+  outline: 2px solid var(--moment);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+::selection {
+  background: rgba(189, 106, 55, 0.16);
 }
 
 @media (prefers-reduced-motion: reduce) {

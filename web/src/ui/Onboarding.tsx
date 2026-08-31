@@ -11,14 +11,15 @@ export function Onboarding({ onTry }: Props) {
         className="onboarding__try"
         onClick={() => onTry('牛乳なくなりそう')}
       >
-        「牛乳なくなりそう」で試す
+        <span className="onboarding__try-phrase">牛乳なくなりそう</span>
+        <span className="onboarding__try-hint">と書いて、置いてみる</span>
       </button>
       <p className="onboarding__steps">
         <span>書く</span>
-        <span className="onboarding__arrow">→</span>
+        <span className="onboarding__arrow">—</span>
         <span>場所を動かす</span>
-        <span className="onboarding__arrow">→</span>
-        <span>「そのときです。」</span>
+        <span className="onboarding__arrow">—</span>
+        <span>そのとき、戻ってくる</span>
       </p>
     </section>
   );

@@ -72,14 +72,16 @@ export default function App() {
           <b>“いつ・どこで”</b>は、そのときが決めます。
         </p>
         <p className="hero-demo" aria-hidden="true">
-          <span className="hero-demo__in">牛乳なくなりそう</span>
+          <span className="hero-demo__in">傘、大学に置いてきた</span>
           <span className="hero-demo__arrow">→</span>
-          <span className="hero-demo__out">次にスーパーに着いたとき</span>
+          <span className="hero-demo__out">次に大学を出るとき</span>
         </p>
       </header>
 
       <main className="stage">
-        <WorldSim world={state.world} waitingByPlace={waitingByPlace} onEvent={actions.sim} />
+        {!isEmpty && (
+          <WorldSim world={state.world} waitingByPlace={waitingByPlace} onEvent={actions.sim} />
+        )}
         <LearnedPlaces
           dict={state.placeDict}
           activeLabelKeys={activeLabelKeys}
@@ -104,6 +106,10 @@ export default function App() {
         </section>
 
         {isEmpty && <Onboarding onTry={actions.submit} />}
+
+        {isEmpty && (
+          <WorldSim world={state.world} waitingByPlace={waitingByPlace} onEvent={actions.sim} />
+        )}
 
         {!isEmpty && (
           <MomentList

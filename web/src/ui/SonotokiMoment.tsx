@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { EngineMoment } from '../domain';
+import { Icon } from './Icon';
 
 interface Props {
   moment: EngineMoment;
@@ -21,13 +22,15 @@ export function SonotokiMoment({ moment, queueRemaining, onDone, onNext }: Props
         <p className="sonotoki__eyebrow">そのとき</p>
         <p className="sonotoki__headline">そのときです。</p>
         <p className="sonotoki__memo">{moment.originalText}</p>
-        <p className="sonotoki__condition">あずけた条件 — {moment.humanLabel}</p>
+        <p className="sonotoki__condition">{moment.humanLabel}</p>
 
         <div className="sonotoki__actions">
           <button ref={doneRef} type="button" className="btn btn--primary" onClick={onDone}>
+            <Icon name="check" size={17} className="btn__icon" />
             やった
           </button>
           <button type="button" className="btn btn--ghost" onClick={onNext}>
+            <Icon name="loop" size={17} className="btn__icon" />
             次のそのとき
           </button>
         </div>
