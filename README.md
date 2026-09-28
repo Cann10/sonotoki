@@ -11,8 +11,7 @@
 | ディレクトリ | 中身 | 状態 |
 |---|---|---|
 | `web/` | Heroes League 向けの Web プロトタイプ（React + TypeScript + Vite） | 実装済み |
-| `ios/` | SwiftUI ネイティブ版 | 予定（Mac が使える 2026-09-05 以降） |
-
+| `ios/` | SwiftUI ネイティブ版 | 予定iOS版: SwiftUIによるネイティブ版を検討していたが、開発中止
 設計の全体像は `docs/PLAN-v1.md`（承認済み設計 Plan）を参照。
 
 ## Web プロトタイプの目的
